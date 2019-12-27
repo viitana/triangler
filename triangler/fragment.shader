@@ -12,8 +12,6 @@ uniform vec3 light_dir;
 
 void main()
 {
-	color = fragmentColor * max(0, dot(normal_ws, normalize(light_dir)));
-	//color = fragmentColor;
-	//color = normal_os;
-	// = vec3(1, 0, 0) * max(0, dot(normal_ws, normalize(light_dir)));
+
+	color = vec4(vec3(0.9, 0.9, 0.9) * max(0, dot(normal_ws, normalize(light_dir))), 1.0);
 }

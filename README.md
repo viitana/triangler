@@ -2,6 +2,8 @@
 
 A rudimentary 3D graphics engine and model viewer. Built from scratch as a personal excercise in modern 3D graphics pipelines and APIs. Uses an OpenGL 3.3 -based renderer.
 
+![Screenshot](/misc/triangler.png?raw=true "The Stanford bunny visualized in triangler")
+
 ### Main features
 - OpenGL renderer with TrueType text, 3D object and line shaders
 - Simple diffuse shading for objects
