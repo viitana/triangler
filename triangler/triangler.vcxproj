@@ -124,7 +124,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="app.cpp" />
+    <ClCompile Include="camera.cpp" />
     <ClCompile Include="font.cpp" />
+    <ClCompile Include="ray.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="util.cpp" />
@@ -139,8 +141,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.hpp" />
+    <ClInclude Include="camera.hpp" />
     <ClInclude Include="font.hpp" />
     <ClInclude Include="mesh.hpp" />
+    <ClInclude Include="ray.hpp" />
     <ClInclude Include="shader.hpp" />
     <ClInclude Include="util.hpp" />
   </ItemGroup>

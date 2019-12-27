@@ -13,6 +13,8 @@ struct Mesh
 	// Colors
 	std::vector<glm::vec4> c;
 
+	float radius;
+
 	void AddVert(glm::vec3 vert)
 	{
 		v.emplace_back(vert);

@@ -1,7 +1,6 @@
 #include <iostream>
 #include <sstream>
 #include <glm/gtx/euler_angles.hpp>
-#include <glm/gtx/rotate_vector.hpp>
 
 #include "app.hpp"
 #include "util.hpp"
@@ -21,6 +20,9 @@
 // consts
 // grid duplicates
 // funky cam
+// intersect, genray
+// proper debug ray init
+// camera straight up/down
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -123,68 +125,55 @@ void App::HandleCursorMove(double xpos, double ypos)
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		glm::vec2 delta = cursor_pos_ - pos;
-		rotation_[0] -= 0.0015f * delta[1];
-		rotation_[1] -= 0.0015f * delta[0];
+		//model_ = glm::rotate(model_, -0.002f * delta[0], v_);
+		//model_ = glm::rotate(model_, -0.002f * delta[1], u_);
+
+		//rotation_[0] -= 0.0015f * delta[1];
+		//rotation_[1] -= 0.0015f * delta[0];
 	}
 
 	// Right mouse to rotate camera
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 	{
 		glm::vec2 delta = cursor_pos_ - pos;
-		camera_dir_ = glm::rotate(camera_dir_, -0.001f * delta[0], glm::vec3(0, 1, 0));
-		glm::vec3 y_rot_axis = glm::cross(camera_dir_, glm::vec3(0, 1, 0));
-		camera_dir_ = glm::rotate(camera_dir_, -0.001f * delta[1], y_rot_axis);
+		camera_.RotateX(-0.001f * delta[0]);
+		camera_.RotateY(-0.001f * delta[1]);
 	}
 
 	// Middle mouse to move camera
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS)
 	{
-		int xsize, ysize;
-		glfwGetWindowSize(window_, &xsize, &ysize);
-
-		float nx = -2.0f * ((xsize - xpos) / xsize) + 1.0f;
-		float ny = 2.0f * ((ysize - ypos) / ysize) - 1.0f;
+		Ray r = camera_.GenerateRay(xpos, ypos);
+		float rt;
+		r.IntersectXZPlane(grid_height_, rt);
 
 		if (mouse_mid_held_)
 		{
-			glm::vec3 w = glm::normalize(camera_dir_);
-			glm::vec3 u = glm::normalize(glm::cross(w, glm::vec3(0, 1, 0)));
-			glm::vec3 v = glm::normalize(glm::cross(u, w));
+			glm::vec3 heldpos = grid_held_camera_pos_ + r.Direction() * rt;
 
-			float d = 1.f / tanf(glm::radians(45.0f / 2));
-			glm::vec3 rd = glm::normalize(nx * u + (16.f / 9.f) * ny * v + d * w);
-			float rt = grid_height_ - (glm::dot(glm::vec3(0, 1, 0), camera_pos_)) / glm::dot(glm::vec3(0, 1, 0), rd);
-
-			glm::vec3 heldpos = grid_held_camera_pos_ + rd * rt;
-
-			std::cout << "ray_t: " << rt << std::endl;
-
-			//camera_pos_ += (heldpos - grid_held_camera_pos_);
-			//std::cout << heldpos[0] << "  ,  " << heldpos[1] << "  ,  " << heldpos[2] << std::endl;
-			//std::cout << "holding: " << camera_pos_[0] << ", " << camera_pos_[1] << ", " << camera_pos_[2] << std::endl;
+			if (rt > 0)
+				camera_.SetPosition(grid_held_camera_pos_ + (grid_held_pos_ - heldpos));
+			
 		}
 		else
 		{
-			std::cout << "new hold" << std::endl;
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position());
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position() + 6.0f * r.Direction());
+			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+			InitRenderGrid();
 
-			glm::vec3 w = glm::normalize(camera_dir_);
-			glm::vec3 v = glm::normalize(glm::cross(w, glm::vec3(0, 1, 0)));
-			glm::vec3 u = glm::normalize(glm::cross(v, w));
+			glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
 
-			float d = 1.f / tanf(glm::radians(45.0f / 2));
-			glm::vec3 rd = glm::normalize(nx * u + (16.f / 9.f) * ny * v + d * w);
-			float rt = grid_height_ - (glm::dot(glm::vec3(0, 1, 0), camera_pos_)) / glm::dot(glm::vec3(0, 1, 0), rd);
-
-			glm::vec3 heldpos = camera_pos_ + rd * rt;
-
-			if (rt < 0)
+			if (rt > 0)
 			{
-				grid_held_pos_ = camera_pos_ + rd * rt;
-				grid_held_camera_pos_ = camera_pos_;
+				grid_held_pos_ = camera_.Position() + r.Direction() * rt;
+				grid_held_camera_pos_ = camera_.Position();
 			}
 
 			mouse_mid_held_ = true;
 
+			std::cout << rt << std::endl;
 			//std::cout << heldpos[0] << "  ,  " << heldpos[1] << "  ,  " << heldpos[2] << std::endl;
 		}
 
@@ -218,13 +207,13 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 void App::WASDMove()
 {
 	if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
-		camera_pos_ += glm::normalize(camera_dir_) * camera_speed_;
+		camera_.MoveZ(camera_speed_);
 	if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
-		camera_pos_ -= glm::normalize(camera_dir_) * camera_speed_;
+		camera_.MoveZ(-camera_speed_);
 	if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
-		camera_pos_ += glm::normalize(glm::cross(camera_dir_, glm::vec3(0, 1, 0))) * camera_speed_;
+		camera_.MoveX(camera_speed_);
 	if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
-		camera_pos_ -= glm::normalize(glm::cross(camera_dir_, glm::vec3(0, 1, 0))) * camera_speed_;
+		camera_.MoveX(-camera_speed_);
 }
 
 void App::HandleResize(int width, int height)
@@ -237,23 +226,7 @@ void App::HandleResize(int width, int height)
 
 void App::HandleMouseScroll(double xoffset, double yoffset)
 {
-	std::cout << xoffset << ", " << yoffset << std::endl;
-	if (yoffset < 0)
-	{
-		for (int i = 0; i > yoffset; i--) {
-			glm::vec3 delta = camera_dir_ * 0.05f;
-			camera_dir_ -= delta;
-			camera_pos_ += delta;
-		}
-	}
-	else if (yoffset > 0)
-	{
-		for (int i = 0; i < yoffset; i++) {
-			glm::vec3 delta = camera_dir_ * -0.05f;
-			camera_dir_ -= delta;
-			camera_pos_ += delta;
-		}
-	}
+	camera_.MoveZ(0.05f * (float)yoffset);
 }
 
 bool App::InitGLFW()
@@ -440,7 +413,7 @@ void App::InitRenderGrid()
 	glBindVertexArray(vertex_array_id_line_);
 
 	// Setup vertice VBO
-	genGrid(mesh_grid_, 50.0f, 50, 2, glm::vec4(0.9f, 0.9f, 0.9f, 0.4f));
+	genGrid(mesh_grid_, 31.0f, 31, 2, glm::vec4(0.9f, 0.9f, 0.9f, 0.4f));
 	glGenBuffers(1, &vertex_buffer_line_);
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_line_);
 	glBufferData(GL_ARRAY_BUFFER, mesh_grid_.v.size() * sizeof(mesh_grid_.v[0]), mesh_grid_.v.data(), GL_STATIC_DRAW);
@@ -458,16 +431,11 @@ void App::InitRenderGrid()
 void App::RenderTris()
 {
 	// Update projections & transformations
-	projection_ = glm::perspective(glm::radians(45.0f), (float)width_ / (float)height_, 0.1f, 100.0f);
-	model_ = glm::eulerAngleXY(rotation_[0], rotation_[1]);
-	view_ = glm::lookAt(
-		camera_pos_, // Camera pos
-		camera_pos_ + camera_dir_, // Camera looking at
-		glm::vec3(0, 1, 0)  // Up vector
-	);
+	projection_main_ = camera_.Projection((float)width_, (float)height_);
+	view_main_ = camera_.View();
 
 	// Construct model-world-projection
-	glm::mat4 mvp = projection_ * view_ * model_;
+	glm::mat4 mvp = projection_main_ * view_main_ * model_;
 
 	// Bind shader
 	glUseProgram(program_id_);
@@ -477,7 +445,7 @@ void App::RenderTris()
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
 	GLuint camposID = glGetUniformLocation(program_id_, "camera_pos");
-	glUniform3fv(camposID, 1, (GLfloat*)&camera_pos_);
+	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
 
 	GLuint dirlightID = glGetUniformLocation(program_id_, "light_dir");
 	glUniform3fv(dirlightID, 1, (GLfloat*)&dir_light_);
@@ -599,7 +567,7 @@ void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm:
 void App::RenderGrid()
 {
 	// Construct model-world-projection
-	glm::mat4 mvp = projection_ * view_ * model_;
+	glm::mat4 mvp = projection_main_ * view_main_ * glm::mat4(1.0);
 
 	// Bind shader
 	glUseProgram(program_id_line_);
@@ -609,7 +577,7 @@ void App::RenderGrid()
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
 	GLuint camposID = glGetUniformLocation(program_id_, "camera_pos");
-	glUniform3fv(camposID, 1, (GLfloat*)&camera_pos_);
+	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
 
 	// Bind VAO, VBO
 	glBindVertexArray(vertex_array_id_line_);

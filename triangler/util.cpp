@@ -8,6 +8,7 @@
 #include <chrono>
 #include <ctime>   
 #include <limits>
+#include <glm/gtx/norm.hpp>
 
 #include <glm/gtx/component_wise.hpp>
 #include <boost/lexical_cast.hpp>
@@ -89,6 +90,7 @@ const std::vector<glm::vec3> genCube() {
 		{-1.0f, 1.0f, 1.0f},
 		{1.0f,-1.0f, 1.0f}
 	};
+
 }
 
 void genIcosahedron(Mesh& mesh)
@@ -130,6 +132,7 @@ void genIcosahedron(Mesh& mesh)
 	mesh.AddTri(9, 8, 1);
 
 	mesh.Normalize();
+	mesh.radius = 1.0f;
 }
 
 struct Edge
@@ -320,6 +323,7 @@ void LoadOBJf(Mesh& mesh, std::string path)
 
 	int v = 0;
 	int t = 0;
+	float maxlen = 0;
 
 	while (std::getline(infile, line))
 	{
@@ -340,6 +344,7 @@ void LoadOBJf(Mesh& mesh, std::string path)
 				glm::vec3 vec(coord[0], coord[1], coord[2]);
 				mesh.AddVert(vec);
 				avg += vec;
+				if (glm::length2(vec) > maxlen) maxlen = length2(vec);
 				v++;
 			}
 		}
@@ -356,6 +361,8 @@ void LoadOBJf(Mesh& mesh, std::string path)
 
 	for (auto& vert : mesh.v)
 		vert = (vert + glm::vec3(0, -0.03f, -0.01f));
+
+	mesh.radius = sqrtf(maxlen);
 
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;

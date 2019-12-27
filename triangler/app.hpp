@@ -16,6 +16,7 @@
 #include "shader.hpp"
 #include "mesh.hpp"
 #include "font.hpp"
+#include "camera.hpp"
 
 #define TRIANGLER_VERSION "0.0.1"
 #define WINDOW_START_WIDTH 1280
@@ -34,6 +35,7 @@ public:
 	void InitRenderGrid();
 
 	void Run();
+	void Update();
 	void CheckTiming();
 	void WASDMove();
 
@@ -69,21 +71,17 @@ private:
 	glm::mat4 projection_text_;
 	unsigned height_ = WINDOW_START_HEIGHT;
 	unsigned width_ = WINDOW_START_WIDTH;
-	glm::vec3 camera_pos_ = { 0, 2, 5};
-	glm::vec3 camera_dir_ = { 0, 0, -5};
-	glm::mat4 projection_;
-	glm::mat4 view_;
-	glm::mat4 model_;
+	glm::mat4 projection_main_;
+	glm::mat4 view_main_;
+	glm::mat4 model_ = glm::mat4(1.0f);
 	glm::vec3 dir_light_ = { 1.2f, 1.f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
-	glm::vec3 rotation_ = { 0, 0, 0 }; // Euler angles
-	std::vector<glm::vec3> color_buffer_data_;
-	std::vector<glm::vec3> vertex_buffer_data_;
-	std::vector<glm::vec3> normal_buffer_data_;
-	std::vector<glm::vec3> grid_vertex_buffer_data_;
+
 	Mesh mesh_;
 	Mesh mesh_grid_;
 	std::map<GLchar, Character> chars_;
+
+	Camera camera_ = { {0, 2, 2}, {0, -2, -2}, 45.f, .05f, 100.f };
 
 	float grid_height_ = 0.0f;
 	float camera_speed_ = 0.01f;
@@ -97,4 +95,9 @@ private:
 	static constexpr int frametime_buffer_size_ = 100;
 	std::queue<double> frametimes_;
 	float framerate_;
+
+	// Camera/perspective properties
+	glm::vec3 u_;
+	glm::vec3 v_;
+	glm::vec3 w_;
 };
