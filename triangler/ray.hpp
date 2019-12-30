@@ -9,9 +9,9 @@ class Ray
 {
 public:
 	Ray(glm::vec3 origin, glm::vec3 direction);
-	void Intersect(Mesh& mesh, float& t);
-	void IntersectXZPlane(float y, float& t);
-	void IntersectSphere(const glm::vec3 mid, const float r, float& t);
+	const bool Intersect(Mesh& mesh, float& t);
+	const bool IntersectXZPlane(float y, float& t);
+	const bool IntersectSphere(const glm::vec3 mid, const float r, float& t);
 	const glm::vec3 Origin() { return origin_; }
 	const glm::vec3 Direction() { return direction_; }
 private:

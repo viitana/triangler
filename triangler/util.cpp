@@ -40,7 +40,6 @@ void genNormals(Mesh& mesh)
 	mesh.n = normals;
 }
 
-
 void genRandomColors(Mesh& mesh) {
 	for (int i = 0; i < mesh.v.size(); i++) {
 		mesh.AddColor(glm::vec4(
@@ -359,10 +358,14 @@ void LoadOBJf(Mesh& mesh, std::string path)
 
 	avg = avg / static_cast<double>(v);
 
-	for (auto& vert : mesh.v)
-		vert = (vert + glm::vec3(0, -0.03f, -0.01f));
+	//for (auto& vert : mesh.v)
+	//	vert = (vert - glm::vec3(avg));
 
 	mesh.radius = sqrtf(maxlen);
+
+	//mesh.radius = 0.3f;
+	//mesh.mid = glm::vec3(avg);
+
 
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
@@ -376,4 +379,9 @@ void LoadOBJf(Mesh& mesh, std::string path)
 		<< elapsed_seconds.count() << "s"
 		<< std::endl;
 
+}
+
+void printVec(glm::vec3 v)
+{
+	std::cout << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
 }

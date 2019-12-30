@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include "app.hpp"
 #include "util.hpp"
@@ -23,6 +24,7 @@
 // intersect, genray
 // proper debug ray init
 // camera straight up/down
+// lighting tied to cam dir
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -80,7 +82,7 @@ void App::Run()
 		WASDMove();
 
 		// Main render
-		RenderTris();
+		RenderTris(obj_);
 
 		// Grid render
 		RenderGrid();
@@ -118,18 +120,71 @@ void App::CheckTiming() {
 
 void App::HandleCursorMove(double xpos, double ypos)
 {
-
 	glm::vec2 pos(xpos, ypos);
 
 	// Left mouse to rotate object
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
-		glm::vec2 delta = cursor_pos_ - pos;
-		//model_ = glm::rotate(model_, -0.002f * delta[0], v_);
-		//model_ = glm::rotate(model_, -0.002f * delta[1], u_);
+		Ray r = camera_.GenerateRay(xpos, ypos);
+		float rt;
+		r.IntersectSphere(glm::vec3(0), obj_.mesh.radius, rt);
 
-		//rotation_[0] -= 0.0015f * delta[1];
-		//rotation_[1] -= 0.0015f * delta[0];
+		if (mouse_left_held_)
+		{
+			if (rt > 0) {
+				glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+				glm::vec3 current = glm::normalize(heldpos);
+				glm::vec3 held = glm::normalize(obj_held_pos_);
+
+				glm::vec3 axis = glm::cross(current, held);
+
+				const float phi = acos(glm::dot(current, held));
+				const float dot = glm::dot(current, held);
+
+				obj_.SetTransform(glm::rotate(-phi, axis) * obj_held_transform_);
+			}
+		}
+		else
+		{
+			if (rt > 0) {
+				glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+				obj_held_pos_ = heldpos;
+				obj_held_transform_ = obj_.transform;
+
+				mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
+				mesh_grid_.v.insert(mesh_grid_.v.begin(), heldpos);
+				mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+				mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+				InitRenderGrid();
+
+				mouse_left_held_ = true;
+			}
+		}	
+	}
+	else
+	{
+		if (mouse_left_held_)
+		{
+			Ray r = camera_.GenerateRay(xpos, ypos);
+			float rt;
+			r.IntersectSphere(glm::vec3(0), obj_.mesh.radius, rt);
+			glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), heldpos);
+			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+
+			glm::vec3 axis = glm::cross(heldpos, obj_held_pos_);
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::normalize(axis));
+			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 0, 1, 1));
+			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 0, 1, 1));
+			InitRenderGrid();
+
+		}
+
+		mouse_left_held_ = false;
 	}
 
 	// Right mouse to rotate camera
@@ -149,16 +204,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 
 		if (mouse_mid_held_)
 		{
-			glm::vec3 heldpos = grid_held_camera_pos_ + r.Direction() * rt;
-
 			if (rt > 0)
+			{
+				glm::vec3 heldpos = grid_held_camera_pos_ + r.Direction() * rt;
 				camera_.SetPosition(grid_held_camera_pos_ + (grid_held_pos_ - heldpos));
-			
+			}
 		}
 		else
 		{
 			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position());
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position() + 6.0f * r.Direction());
+			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position() + rt * r.Direction());
 			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
 			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
 			InitRenderGrid();
@@ -172,12 +227,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 			}
 
 			mouse_mid_held_ = true;
-
-			std::cout << rt << std::endl;
-			//std::cout << heldpos[0] << "  ,  " << heldpos[1] << "  ,  " << heldpos[2] << std::endl;
 		}
-
-		//std::cout << "Window size: " << xsize << " x " << ysize << ", mouse pos: " << xpos << " x " << ypos << ", npos:" << nx << " x " << ny << std::endl;
 	}
 	else
 	{
@@ -286,31 +336,36 @@ void App::InitRenderMain()
 
 	// Get mesh, setup index & vertice VBO
 	//genIcosphere(mesh_, 0);
-	LoadOBJf(mesh_, "assets/bunny_lores.obj");
+	LoadOBJf(obj_.mesh, "assets/bunny_lores.obj");
+	// genIcosphere(mesh_, 1);
 	glGenBuffers(1, &vertex_buffer_);
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_.v.size() * sizeof(mesh_.v[0]), mesh_.v.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, obj_.mesh.v.size() * sizeof(obj_.mesh.v[0]), obj_.mesh.v.data(), GL_STATIC_DRAW);
 
 	glGenBuffers(1, &index_buffer_);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh_.t.size() * sizeof(mesh_.t[0]), mesh_.t.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj_.mesh.t.size() * sizeof(obj_.mesh.t[0]), obj_.mesh.t.data(), GL_STATIC_DRAW);
 
 	// Get colors, setup VBO
-	genRandomColors(mesh_);
+	genRandomColors(obj_.mesh);
 	glGenBuffers(1, &color_buffer_);
 	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_.c.size() * sizeof(mesh_.c[0]), mesh_.c.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, obj_.mesh.c.size() * sizeof(obj_.mesh.c[0]), obj_.mesh.c.data(), GL_STATIC_DRAW);
 
 	// Get normals, setup VBO
-	genNormals(mesh_);
+	genNormals(obj_.mesh);
 	glGenBuffers(1, &normal_buffer_);
 	glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_.n.size() * sizeof(mesh_.n[0]), mesh_.n.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, obj_.mesh.n.size() * sizeof(obj_.mesh.n[0]), obj_.mesh.n.data(), GL_STATIC_DRAW);
 
 	// Unbind VAO, VBO
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+}
+
+void App::InitObject(Object3D obj)
+{
 
 }
 
@@ -428,14 +483,14 @@ void App::InitRenderGrid()
 	glBindVertexArray(0);
 }
 
-void App::RenderTris()
+void App::RenderTris(const Object3D obj)
 {
 	// Update projections & transformations
 	projection_main_ = camera_.Projection((float)width_, (float)height_);
 	view_main_ = camera_.View();
 
 	// Construct model-world-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * model_;
+	glm::mat4 mvp = projection_main_ * view_main_ * obj.transform;
 
 	// Bind shader
 	glUseProgram(program_id_);
@@ -495,7 +550,7 @@ void App::RenderTris()
 	);
 
 	// Draw
-	glDrawElements(GL_TRIANGLES, mesh_.t.size(), GL_UNSIGNED_INT, (void*)0);
+	glDrawElements(GL_TRIANGLES, obj.mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
 
 	// Disable vertex attributes
 	glDisableVertexAttribArray(0);
@@ -622,8 +677,8 @@ void App::RenderDebug()
 
 	std::ostringstream l1, l2, l3, l4, l5;
 	l1 << "Triangler version " << TRIANGLER_VERSION;
-	l2 << "triangles: " << mesh_.t.size() / 3;
-	l3 << "vertices:  " << mesh_.v.size();
+	l2 << "triangles: " << obj_.mesh.t.size() / 3;
+	l3 << "vertices:  " << obj_.mesh.v.size();
 	l4 << "viewport:  " << sizeX << "x" << sizeY;
 	l5 << "framerate: " << framerate_;
 

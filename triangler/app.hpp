@@ -17,6 +17,7 @@
 #include "mesh.hpp"
 #include "font.hpp"
 #include "camera.hpp"
+#include "object3d.hpp"
 
 #define TRIANGLER_VERSION "0.0.1"
 #define WINDOW_START_WIDTH 1280
@@ -33,9 +34,9 @@ public:
 	void InitFont();
 	void InitRenderText();
 	void InitRenderGrid();
+	void InitObject(Object3D obj);
 
 	void Run();
-	void Update();
 	void CheckTiming();
 	void WASDMove();
 
@@ -44,7 +45,7 @@ public:
 	void HandleMouseScroll(double xoffset, double yoffset);
 	void HandleKey(int key, int scancode, int action, int mods);
 
-	void RenderTris();
+	void RenderTris(const Object3D obj);
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderDebug();
 	void RenderGrid();
@@ -56,6 +57,7 @@ private:
 	GLuint program_id_line_;
 
 	GLuint vertex_array_id_;
+
 	GLuint vertex_buffer_;
 	GLuint index_buffer_;
 	GLuint color_buffer_;
@@ -73,11 +75,11 @@ private:
 	unsigned width_ = WINDOW_START_WIDTH;
 	glm::mat4 projection_main_;
 	glm::mat4 view_main_;
-	glm::mat4 model_ = glm::mat4(1.0f);
 	glm::vec3 dir_light_ = { 1.2f, 1.f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
 
-	Mesh mesh_;
+	Object3D obj_;
+
 	Mesh mesh_grid_;
 	std::map<GLchar, Character> chars_;
 
@@ -90,6 +92,11 @@ private:
 	bool mouse_mid_held_ = false;
 	glm::vec3 grid_held_pos_;
 	glm::vec3 grid_held_camera_pos_;
+
+	// Object grab tracking
+	bool mouse_left_held_ = false;
+	glm::vec3 obj_held_pos_;
+	glm::mat4 obj_held_transform_;
 
 	// Frametime tracking
 	static constexpr int frametime_buffer_size_ = 100;
