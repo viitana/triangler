@@ -15,6 +15,11 @@ struct Object3D
 	Mesh mesh;
 	glm::mat4 transform = glm::mat4(1.0f);
 
+	glm::vec3 GetPos() const
+	{
+		return transform * glm::vec4(0);
+	}
+
 	void Transform(const glm::mat4 m)
 	{
 		transform = m * transform;

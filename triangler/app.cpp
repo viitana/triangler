@@ -82,7 +82,8 @@ void App::Run()
 		WASDMove();
 
 		// Main render
-		RenderTris(obj_);
+		for (Object3D* obj : objs_)
+			RenderTris(obj);
 
 		// Grid render
 		RenderGrid();
@@ -126,13 +127,24 @@ void App::HandleCursorMove(double xpos, double ypos)
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		Ray r = camera_.GenerateRay(xpos, ypos);
-		float rt;
-		r.IntersectSphere(glm::vec3(0), obj_.mesh.radius, rt);
+		float rt = 0;
+		float min_t = std::numeric_limits<float>::max();
+		Object3D* selected_obj = NULL;
+		for (auto obj : objs_)
+		{
+			bool hit = r.IntersectSphere(glm::vec3(0), obj->mesh.radius, rt);
+			if (hit && rt < min_t)
+			{
+				selected_obj = obj;
+				min_t = rt;
+			}
+		}
+		if (!selected_obj) return;
 
 		if (mouse_left_held_)
 		{
-			if (rt > 0) {
-				glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+			if (min_t > 0) {
+				glm::vec3 heldpos = camera_.Position() + r.Direction() * min_t;
 				glm::vec3 current = glm::normalize(heldpos);
 				glm::vec3 held = glm::normalize(obj_held_pos_);
 
@@ -141,15 +153,15 @@ void App::HandleCursorMove(double xpos, double ypos)
 				const float phi = acos(glm::dot(current, held));
 				const float dot = glm::dot(current, held);
 
-				obj_.SetTransform(glm::rotate(-phi, axis) * obj_held_transform_);
+				selected_obj->SetTransform(glm::rotate(-phi, axis) * obj_held_transform_);
 			}
 		}
 		else
 		{
-			if (rt > 0) {
-				glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+			if (min_t > 0) {
+				glm::vec3 heldpos = camera_.Position() + r.Direction() * min_t;
 				obj_held_pos_ = heldpos;
-				obj_held_transform_ = obj_.transform;
+				obj_held_transform_ = selected_obj->transform;
 
 				mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
 				mesh_grid_.v.insert(mesh_grid_.v.begin(), heldpos);
@@ -166,22 +178,38 @@ void App::HandleCursorMove(double xpos, double ypos)
 		if (mouse_left_held_)
 		{
 			Ray r = camera_.GenerateRay(xpos, ypos);
-			float rt;
-			r.IntersectSphere(glm::vec3(0), obj_.mesh.radius, rt);
-			glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+			float rt = 0;
+			float min_t = std::numeric_limits<float>::max();
+			Object3D* selected_obj = NULL;
+			for (auto obj : objs_)
+			{
+				bool hit = r.IntersectSphere(glm::vec3(0), obj->mesh.radius, rt);
+				if (hit && rt < min_t)
+				{
+					selected_obj = obj;
+					min_t = rt;
+				}
+			}
+			if (!selected_obj) return;
 
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), heldpos);
-			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
-			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+			glm::vec3 heldpos = camera_.Position() + r.Direction() * min_t;
+
+			addDebugVector(
+				mesh_grid_,
+				glm::vec3(0),
+				heldpos,
+				glm::vec4(0, 1, 0, 1)
+			);
 
 			glm::vec3 axis = glm::cross(heldpos, obj_held_pos_);
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::normalize(axis));
-			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 0, 1, 1));
-			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 0, 1, 1));
-			InitRenderGrid();
+			addDebugVector(
+				mesh_grid_,
+				glm::vec3(0),
+				glm::normalize(axis),
+				glm::vec4(0, 0, 1, 1)
+			);
 
+			InitRenderGrid();
 		}
 
 		mouse_left_held_ = false;
@@ -212,10 +240,12 @@ void App::HandleCursorMove(double xpos, double ypos)
 		}
 		else
 		{
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position());
-			mesh_grid_.v.insert(mesh_grid_.v.begin(), camera_.Position() + rt * r.Direction());
-			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
-			mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+			addDebugVector(
+				mesh_grid_,
+				camera_.Position(),
+				camera_.Position() + rt * r.Direction(),
+				glm::vec4(0, 1, 0, 1)
+			);
 			InitRenderGrid();
 
 			glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
@@ -325,6 +355,39 @@ bool App::InitGLEW()
 	return true;
 }
 
+void App::InitObject(Object3D* obj)
+{
+	glBindVertexArray(vertex_array_id_);
+	LoadOBJf(obj->mesh, "assets/bunny_lores.obj");
+
+	// Mesh VBO
+	glGenBuffers(1, &obj->vertex_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, obj->mesh.v.size() * sizeof(obj->mesh.v[0]), obj->mesh.v.data(), GL_STATIC_DRAW);
+
+	// Mesh index buffer
+	glGenBuffers(1, &obj->index_buffer_id);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->index_buffer_id);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->mesh.t.size() * sizeof(obj->mesh.t[0]), obj->mesh.t.data(), GL_STATIC_DRAW);
+
+	// Colors VBO
+	genRandomColors(obj->mesh);
+	glGenBuffers(1, &obj->color_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, obj->mesh.c.size() * sizeof(obj->mesh.c[0]), obj->mesh.c.data(), GL_STATIC_DRAW);
+
+	// Normals VBO
+	genNormals(obj->mesh);
+	glGenBuffers(1, &obj->normal_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, obj->normal_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, obj->mesh.n.size() * sizeof(obj->mesh.n[0]), obj->mesh.n.data(), GL_STATIC_DRAW);
+
+	// Unbind
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
 void App::InitRenderMain()
 {
 	// 3D shader program
@@ -336,37 +399,10 @@ void App::InitRenderMain()
 
 	// Get mesh, setup index & vertice VBO
 	//genIcosphere(mesh_, 0);
-	LoadOBJf(obj_.mesh, "assets/bunny_lores.obj");
-	// genIcosphere(mesh_, 1);
-	glGenBuffers(1, &vertex_buffer_);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, obj_.mesh.v.size() * sizeof(obj_.mesh.v[0]), obj_.mesh.v.data(), GL_STATIC_DRAW);
+	Object3D* obj = new Object3D();
+	objs_.push_back(obj);
 
-	glGenBuffers(1, &index_buffer_);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj_.mesh.t.size() * sizeof(obj_.mesh.t[0]), obj_.mesh.t.data(), GL_STATIC_DRAW);
-
-	// Get colors, setup VBO
-	genRandomColors(obj_.mesh);
-	glGenBuffers(1, &color_buffer_);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, obj_.mesh.c.size() * sizeof(obj_.mesh.c[0]), obj_.mesh.c.data(), GL_STATIC_DRAW);
-
-	// Get normals, setup VBO
-	genNormals(obj_.mesh);
-	glGenBuffers(1, &normal_buffer_);
-	glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, obj_.mesh.n.size() * sizeof(obj_.mesh.n[0]), obj_.mesh.n.data(), GL_STATIC_DRAW);
-
-	// Unbind VAO, VBO
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::InitObject(Object3D obj)
-{
-
+	InitObject(obj);
 }
 
 void App::InitFont()
@@ -483,14 +519,14 @@ void App::InitRenderGrid()
 	glBindVertexArray(0);
 }
 
-void App::RenderTris(const Object3D obj)
+void App::RenderTris(const Object3D* obj)
 {
 	// Update projections & transformations
 	projection_main_ = camera_.Projection((float)width_, (float)height_);
 	view_main_ = camera_.View();
 
 	// Construct model-world-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * obj.transform;
+	glm::mat4 mvp = projection_main_ * view_main_ * obj->transform;
 
 	// Bind shader
 	glUseProgram(program_id_);
@@ -508,18 +544,15 @@ void App::RenderTris(const Object3D obj)
 	// Clear color, depth buffers
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Bind VAO, VBOs
+	// Bind VAO, index
 	glBindVertexArray(vertex_array_id_);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_);
-	glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->index_buffer_id);
 
 	// Set up vertex attributes
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
+	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
 	glVertexAttribPointer(
-		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		0,                  // attribute pos in shader
 		3,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
@@ -528,9 +561,9 @@ void App::RenderTris(const Object3D obj)
 	);
 
 	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_);
+	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
 	glVertexAttribPointer(
-		1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+		1,                                // attribute pos in shader
 		4,                                // size
 		GL_FLOAT,                         // type
 		GL_FALSE,                         // normalized?
@@ -539,9 +572,9 @@ void App::RenderTris(const Object3D obj)
 	);
 
 	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, normal_buffer_);
+	glBindBuffer(GL_ARRAY_BUFFER, obj->normal_buffer_id);
 	glVertexAttribPointer(
-		2,                                // attribute. No particular reason for 2, but must match the layout in the shader.
+		2,                                // attribute pos in shader
 		3,                                // size
 		GL_FLOAT,                         // type
 		GL_FALSE,                         // normalized?
@@ -550,7 +583,7 @@ void App::RenderTris(const Object3D obj)
 	);
 
 	// Draw
-	glDrawElements(GL_TRIANGLES, obj.mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
+	glDrawElements(GL_TRIANGLES, obj->mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
 
 	// Disable vertex attributes
 	glDisableVertexAttribArray(0);

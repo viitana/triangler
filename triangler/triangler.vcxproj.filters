@@ -61,9 +61,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="shader.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="app.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -83,6 +80,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="object3d.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

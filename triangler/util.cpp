@@ -45,9 +45,18 @@ void genRandomColors(Mesh& mesh) {
 		mesh.AddColor(glm::vec4(
 			(float)rand() / (float)RAND_MAX,
 			(float)rand() / (float)RAND_MAX,
-			(float)rand() / (float)RAND_MAX, 1.0f)
-		);
+			(float)rand() / (float)RAND_MAX,
+			1.0f
+		));
 	}
+}
+
+void addDebugVector(Mesh& mesh, const glm::vec3 start, const glm::vec3 end, const glm::vec4 color)
+{
+	mesh.v.insert(mesh.v.begin(), start);
+	mesh.v.insert(mesh.v.begin(), end);
+	mesh.c.insert(mesh.c.begin(), color);
+	mesh.c.insert(mesh.c.begin(), color);
 }
 
 const std::vector<glm::vec3> genCube() {

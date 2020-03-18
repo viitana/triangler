@@ -34,7 +34,8 @@ public:
 	void InitFont();
 	void InitRenderText();
 	void InitRenderGrid();
-	void InitObject(Object3D obj);
+	void InitObject(Object3D* obj);
+	void BindObject(const Object3D* obj);
 
 	void Run();
 	void CheckTiming();
@@ -45,7 +46,7 @@ public:
 	void HandleMouseScroll(double xoffset, double yoffset);
 	void HandleKey(int key, int scancode, int action, int mods);
 
-	void RenderTris(const Object3D obj);
+	void RenderTris(const Object3D* obj);
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderDebug();
 	void RenderGrid();
@@ -79,6 +80,7 @@ private:
 	glm::vec2 cursor_pos_ = { -1, -1 };
 
 	Object3D obj_;
+	std::vector<Object3D*> objs_;
 
 	Mesh mesh_grid_;
 	std::map<GLchar, Character> chars_;
