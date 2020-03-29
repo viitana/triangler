@@ -2,11 +2,13 @@
 
 #include <glm/glm.hpp>
 #include <GL/glew.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "mesh.hpp"
 
 struct Object3D
 {
+	GLuint vertex_array_id_ = -1;
 	GLuint vertex_buffer_id = -1;
 	GLuint index_buffer_id = -1;
 	GLuint color_buffer_id = -1;
@@ -28,6 +30,11 @@ struct Object3D
 	void SetTransform(const glm::mat4 m)
 	{
 		transform = m;
+	}
+
+	void Translate(const glm::vec3 v)
+	{
+		transform = glm::translate(transform, v);
 	}
 
 	void ClearBuffers()

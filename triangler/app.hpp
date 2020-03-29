@@ -1,5 +1,7 @@
 #pragma once
 
+#define IMGUI_IMPL_OPENGL_LOADER_GLEW
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -10,6 +12,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include <ft2build.h>
 #include FT_FREETYPE_H  
 
@@ -50,6 +55,9 @@ public:
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderDebug();
 	void RenderGrid();
+
+	void InitGUI();
+	void RenderGUI();
 private:
 	GLFWwindow* window_;
 
@@ -79,7 +87,7 @@ private:
 	glm::vec3 dir_light_ = { 1.2f, 1.f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
 
-	Object3D obj_;
+	Object3D obj_selected_;
 	std::vector<Object3D*> objs_;
 
 	Mesh mesh_grid_;

@@ -315,11 +315,11 @@ bool extractInts(std::istringstream& iss, float* values)
 	return true;
 }
 
-void LoadOBJf(Mesh& mesh, std::string path)
+void LoadOBJf(Object3D* obj, std::string path, glm::vec3 offset)
 {
 	auto start = std::chrono::system_clock::now();
 	std::ifstream infile(path);
-
+	
 	int lineCount = 0;
 	int lineTotal = std::count(std::istreambuf_iterator<char>(infile),
 		std::istreambuf_iterator<char>(), '\n');
@@ -349,8 +349,8 @@ void LoadOBJf(Mesh& mesh, std::string path)
 			else
 			{
 				extractFloats(iss, coord);
-				glm::vec3 vec(coord[0], coord[1], coord[2]);
-				mesh.AddVert(vec);
+				glm::vec3  vec = glm::vec3(coord[0], coord[1], coord[2]);
+				obj->mesh.AddVert(vec);
 				avg += vec;
 				if (glm::length2(vec) > maxlen) maxlen = length2(vec);
 				v++;
@@ -360,7 +360,7 @@ void LoadOBJf(Mesh& mesh, std::string path)
 		{
 			float values[9];
 			extractInts(iss, values);
-			mesh.AddTri(values[0] - 1, values[1] - 1, values[2] - 1);
+			obj->mesh.AddTri(values[0] - 1, values[1] - 1, values[2] - 1);
 			t++;
 		}
 	}
@@ -370,7 +370,7 @@ void LoadOBJf(Mesh& mesh, std::string path)
 	//for (auto& vert : mesh.v)
 	//	vert = (vert - glm::vec3(avg));
 
-	mesh.radius = sqrtf(maxlen);
+	obj->mesh.radius = sqrtf(maxlen);
 
 	//mesh.radius = 0.3f;
 	//mesh.mid = glm::vec3(avg);
@@ -380,10 +380,10 @@ void LoadOBJf(Mesh& mesh, std::string path)
 	std::chrono::duration<double> elapsed_seconds = end - start;
 
 	std::cout
-		<< "Loaded OBJ file, vertices: "
-		<< mesh.v.size() << "/" << v
+		<< "Loaded OBJ mssh, vertices: "
+		<< obj->mesh.v.size() << "/" << v
 		<< ", triangles: "
-		<< mesh.t.size() / 3 << "/" << t
+		<< obj->mesh.t.size() / 3 << "/" << t
 		<< ", time: "
 		<< elapsed_seconds.count() << "s"
 		<< std::endl;

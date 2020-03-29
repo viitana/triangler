@@ -1,11 +1,10 @@
 #include <iostream>
 #include <sstream>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/gtx/transform.hpp>
 
 #include "app.hpp"
 #include "util.hpp"
 
+// obj destructor
 // shader settings
 // lighting
 // scene descriptions
@@ -68,6 +67,7 @@ bool App::Initialize()
 	InitFont();
 	InitRenderText();
 	InitRenderGrid();
+	InitGUI();
 
 	return true;
 }
@@ -80,6 +80,9 @@ void App::Run()
 
 		// Keyboard movement
 		WASDMove();
+
+		// Clear color, depth buffers
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Main render
 		for (Object3D* obj : objs_)
@@ -355,10 +358,15 @@ bool App::InitGLEW()
 	return true;
 }
 
+// Load object mesh, generate normals and colors,
+// bind data to render buffers
 void App::InitObject(Object3D* obj)
 {
-	glBindVertexArray(vertex_array_id_);
-	LoadOBJf(obj->mesh, "assets/bunny_lores.obj");
+	// VAO
+	glGenVertexArrays(1, &obj->vertex_array_id_);
+	glBindVertexArray(obj->vertex_array_id_);
+
+	LoadOBJf(obj, "assets/bunny_lores.obj");
 
 	// Mesh VBO
 	glGenBuffers(1, &obj->vertex_buffer_id);
@@ -388,14 +396,12 @@ void App::InitObject(Object3D* obj)
 	glBindVertexArray(0);
 }
 
+// Load 3D shaders, generate and bind vertex array object,
+// add starter object
 void App::InitRenderMain()
 {
 	// 3D shader program
 	program_id_ = LoadShaders("vertex.shader", "fragment.shader");
-
-	// VAO
-	glGenVertexArrays(1, &vertex_array_id_);
-	glBindVertexArray(vertex_array_id_);
 
 	// Get mesh, setup index & vertice VBO
 	//genIcosphere(mesh_, 0);
@@ -403,10 +409,19 @@ void App::InitRenderMain()
 	objs_.push_back(obj);
 
 	InitObject(obj);
+	obj->Translate({ -0.3, 0, 0 });
+
+	Object3D* obj2 = new Object3D();
+	objs_.push_back(obj2);
+	InitObject(obj2);
+	obj2->Translate({ 0.3, 0, 0 });
 }
 
+// Load up Freetype font glyphs, generate and bind character textures
 void App::InitFont()
 {
+	glUseProgram(program_id_text_);
+
 	// Load lib
 	FT_Library ft;
 	if (FT_Init_FreeType(&ft))
@@ -468,6 +483,7 @@ void App::InitFont()
 	FT_Done_FreeType(ft);
 }
 
+// Load text shaders, generate and bind VAO, VBO
 void App::InitRenderText()
 {
 	// Text shader program
@@ -541,11 +557,8 @@ void App::RenderTris(const Object3D* obj)
 	GLuint dirlightID = glGetUniformLocation(program_id_, "light_dir");
 	glUniform3fv(dirlightID, 1, (GLfloat*)&dir_light_);
 
-	// Clear color, depth buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	// Bind VAO, index
-	glBindVertexArray(vertex_array_id_);
+	glBindVertexArray(obj->vertex_array_id_);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->index_buffer_id);
 
 	// Set up vertex attributes
@@ -675,7 +688,7 @@ void App::RenderGrid()
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_line_);
 	glVertexAttribPointer(
-		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		0,                  // attribute pos in shader
 		3,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
@@ -686,7 +699,7 @@ void App::RenderGrid()
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_line_);
 	glVertexAttribPointer(
-		1,                  // attribute 1. No particular reason for 0, but must match the layout in the shader.
+		1,                  // attribute pos in shader
 		4,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
@@ -710,8 +723,8 @@ void App::RenderDebug()
 
 	std::ostringstream l1, l2, l3, l4, l5;
 	l1 << "Triangler version " << TRIANGLER_VERSION;
-	l2 << "triangles: " << obj_.mesh.t.size() / 3;
-	l3 << "vertices:  " << obj_.mesh.v.size();
+	l2 << "triangles: " << objs_[0]->mesh.t.size() / 3;
+	l3 << "vertices:  " << objs_[0]->mesh.v.size();
 	l4 << "viewport:  " << sizeX << "x" << sizeY;
 	l5 << "framerate: " << framerate_;
 
@@ -720,4 +733,14 @@ void App::RenderDebug()
 	RenderText(l3.str(), 4, height_ - 46, 1.f, glm::vec3(1, 1, 1));
 	RenderText(l4.str(), 4, height_ - 62, 1.f, glm::vec3(1, 1, 1));
 	RenderText(l5.str(), 4, height_ - 78, 1.f, glm::vec3(1, 1, 1));
+}
+
+void App::InitGUI()
+{
+
+}
+
+void App::RenderGUI()
+{
+	
 }
