@@ -59,7 +59,6 @@ bool App::Initialize()
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -84,9 +83,10 @@ void App::Run()
 		// Clear color, depth buffers
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Main render
-		for (Object3D* obj : objs_)
-			RenderTris(obj);
+		// Aoply current render mode
+		glPolygonMode(GL_FRONT_AND_BACK, config_.RenderMode);
+
+		RenderMain();
 
 		// Grid render
 		RenderGrid();
@@ -102,10 +102,9 @@ void App::Run()
 	while (glfwWindowShouldClose(window_) == 0);
 
 	// Cleanup VBO
-	glDeleteBuffers(1, &vertex_buffer_);
-	glDeleteBuffers(1, &color_buffer_);
-	glDeleteBuffers(1, &normal_buffer_);
-	glDeleteVertexArrays(1, &vertex_array_id_);
+	for (auto obj : objs_)
+		obj->ClearBuffers();
+
 	glDeleteProgram(program_id_);
 
 	// Close OpenGL window and terminate GLFW
@@ -231,7 +230,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		Ray r = camera_.GenerateRay(xpos, ypos);
 		float rt;
-		r.IntersectXZPlane(grid_height_, rt);
+		r.IntersectXZPlane(config_.Gridheight, rt);
 
 		if (mouse_mid_held_)
 		{
@@ -276,6 +275,8 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE)
 			glfwSetWindowShouldClose(window_, GLFW_TRUE);
+		if (key == GLFW_KEY_Y)
+			config_.RenderMode = config_.RenderMode == GL_FILL ? GL_LINE : GL_FILL;
 		if (key == GLFW_KEY_ENTER) {
 			glDeleteProgram(program_id_);
 			program_id_ = LoadShaders("vertex.shader", "fragment.shader");
@@ -290,13 +291,13 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 void App::WASDMove()
 {
 	if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
-		camera_.MoveZ(camera_speed_);
+		camera_.MoveZ(config_.CameraSpeed);
 	if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
-		camera_.MoveZ(-camera_speed_);
+		camera_.MoveZ(-config_.CameraSpeed);
 	if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
-		camera_.MoveX(camera_speed_);
+		camera_.MoveX(config_.CameraSpeed);
 	if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
-		camera_.MoveX(-camera_speed_);
+		camera_.MoveX(-config_.CameraSpeed);
 }
 
 void App::HandleResize(int width, int height)
@@ -535,6 +536,12 @@ void App::InitRenderGrid()
 	glBindVertexArray(0);
 }
 
+void App::RenderMain()
+{
+	for (Object3D* obj : objs_)
+		RenderTris(obj);
+}
+
 void App::RenderTris(const Object3D* obj)
 {
 	// Update projections & transformations
@@ -612,6 +619,7 @@ void App::RenderTris(const Object3D* obj)
 void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
 {
 	glEnable(GL_BLEND);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Bind shader

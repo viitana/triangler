@@ -43,6 +43,7 @@ struct Object3D
 		glDeleteBuffers(1, &index_buffer_id);
 		glDeleteBuffers(1, &color_buffer_id);
 		glDeleteBuffers(1, &normal_buffer_id);
+		glDeleteVertexArrays(1, &vertex_array_id_);
 	}
 
 };

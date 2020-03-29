@@ -14,8 +14,8 @@ int main(void)
 {
 	App triangler;
 	if (!triangler.Initialize())
-		return -1;
+		return 1;
 	triangler.Run();
 
-	return 1;
+	return 0;
 }

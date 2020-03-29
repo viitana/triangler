@@ -28,6 +28,16 @@
 #define WINDOW_START_WIDTH 1280
 #define WINDOW_START_HEIGHT 800
 
+struct TrianglerConfig
+{
+	GLenum RenderMode = GL_FILL;
+	float CameraSpeed = 0.01f;
+	float Gridheight = 0.0f;
+	bool Grid = true;
+	bool Diffuse = true;
+	bool Specular = true;
+};
+
 class App
 {
 public:
@@ -51,6 +61,7 @@ public:
 	void HandleMouseScroll(double xoffset, double yoffset);
 	void HandleKey(int key, int scancode, int action, int mods);
 
+	void RenderMain();
 	void RenderTris(const Object3D* obj);
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderDebug();
@@ -90,13 +101,12 @@ private:
 	Object3D obj_selected_;
 	std::vector<Object3D*> objs_;
 
+	TrianglerConfig config_;
+
 	Mesh mesh_grid_;
 	std::map<GLchar, Character> chars_;
 
 	Camera camera_ = { {0, 2, 2}, {0, -2, -2}, 45.f, .05f, 100.f };
-
-	float grid_height_ = 0.0f;
-	float camera_speed_ = 0.01f;
 
 	// Grid grab tracking
 	bool mouse_mid_held_ = false;
