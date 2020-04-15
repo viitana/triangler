@@ -126,6 +126,7 @@
     <ClCompile Include="app.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="font.cpp" />
+    <ClCompile Include="menu.cpp" />
     <ClCompile Include="object3d.cpp" />
     <ClCompile Include="ray.cpp" />
     <ClCompile Include="shader.cpp" />
@@ -144,6 +145,7 @@
     <ClInclude Include="app.hpp" />
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="font.hpp" />
+    <ClInclude Include="menu.hpp" />
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="object3d.hpp" />
     <ClInclude Include="ray.hpp" />

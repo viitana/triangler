@@ -84,12 +84,13 @@ void App::Run()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Aoply current render mode
-		glPolygonMode(GL_FRONT_AND_BACK, config_.RenderMode);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		RenderMain();
 
 		// Grid render
-		RenderGrid();
+		if (config_[TRIANGLER_SETTING_ID_GRID_DRAW].GetBool())
+			RenderGrid();
 
 		// Debug text render
 		RenderDebug();
@@ -230,7 +231,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		Ray r = camera_.GenerateRay(xpos, ypos);
 		float rt;
-		r.IntersectXZPlane(config_.Gridheight, rt);
+		r.IntersectXZPlane(config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat(), rt);
 
 		if (mouse_mid_held_)
 		{
@@ -276,8 +277,8 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 		if (key == GLFW_KEY_ESCAPE)
 			glfwSetWindowShouldClose(window_, GLFW_TRUE);
 		if (key == GLFW_KEY_Y)
-			config_.RenderMode = config_.RenderMode == GL_FILL ? GL_LINE : GL_FILL;
-		if (key == GLFW_KEY_ENTER) {
+			//config_.RenderMode = config_.RenderMode == GL_FILL ? GL_LINE : GL_FILL;
+		if (key == GLFW_KEY_R) {
 			glDeleteProgram(program_id_);
 			program_id_ = LoadShaders("vertex.shader", "fragment.shader");
 			glDeleteProgram(program_id_text_);
@@ -285,19 +286,20 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 			glDeleteProgram(program_id_line_);
 			program_id_line_ = LoadShaders("vertex_line.shader", "fragment_line.shader");
 		}
+		config_.Input(key);
 	}
 }
 
 void App::WASDMove()
 {
 	if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
-		camera_.MoveZ(config_.CameraSpeed);
+		camera_.MoveZ(config_[TRIANGLER_SETTING_ID_CAMSPEED].GetFloat());
 	if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
-		camera_.MoveZ(-config_.CameraSpeed);
+		camera_.MoveZ(-config_[TRIANGLER_SETTING_ID_CAMSPEED].GetFloat());
 	if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
-		camera_.MoveX(config_.CameraSpeed);
+		camera_.MoveX(config_[TRIANGLER_SETTING_ID_CAMSPEED].GetFloat());
 	if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
-		camera_.MoveX(-config_.CameraSpeed);
+		camera_.MoveX(-config_[TRIANGLER_SETTING_ID_CAMSPEED].GetFloat());
 }
 
 void App::HandleResize(int width, int height)
@@ -675,8 +677,11 @@ void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm:
 
 void App::RenderGrid()
 {
+	// Retrieve grid height from config
+	auto height = config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat();
+
 	// Construct model-world-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * glm::mat4(1.0);
+	glm::mat4 mvp = projection_main_ * view_main_ * glm::translate(glm::vec3(0, height,0)) * glm::mat4(1.0);
 
 	// Bind shader
 	glUseProgram(program_id_line_);
@@ -741,6 +746,16 @@ void App::RenderDebug()
 	RenderText(l3.str(), 4, height_ - 46, 1.f, glm::vec3(1, 1, 1));
 	RenderText(l4.str(), 4, height_ - 62, 1.f, glm::vec3(1, 1, 1));
 	RenderText(l5.str(), 4, height_ - 78, 1.f, glm::vec3(1, 1, 1));
+
+	const auto menu = config_.GetMenu();
+	const unsigned index = config_.GetIndex();
+	for (unsigned i = 0; i < menu.size(); i++)
+	{
+		glm::vec3 color = { 1, 1, 1 };
+		if (index == i) color.b = 0;
+		RenderText(menu[i], 24, (24 + i * 16), 1.f, color);
+	}
+
 }
 
 void App::InitGUI()

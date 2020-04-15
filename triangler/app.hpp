@@ -23,20 +23,11 @@
 #include "font.hpp"
 #include "camera.hpp"
 #include "object3d.hpp"
+#include "menu.hpp"
 
 #define TRIANGLER_VERSION "0.0.1"
 #define WINDOW_START_WIDTH 1280
 #define WINDOW_START_HEIGHT 800
-
-struct TrianglerConfig
-{
-	GLenum RenderMode = GL_FILL;
-	float CameraSpeed = 0.01f;
-	float Gridheight = 0.0f;
-	bool Grid = true;
-	bool Diffuse = true;
-	bool Specular = true;
-};
 
 class App
 {

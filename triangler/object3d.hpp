@@ -22,7 +22,7 @@ struct Object3D
 		return transform * glm::vec4(0);
 	}
 
-	void Transform(const glm::mat4 m)
+	void TransformBy(const glm::mat4 m)
 	{
 		transform = m * transform;
 	}
@@ -30,6 +30,11 @@ struct Object3D
 	void SetTransform(const glm::mat4 m)
 	{
 		transform = m;
+	}
+
+	const glm::mat4 GetTransform() const
+	{
+		return transform;
 	}
 
 	void Translate(const glm::vec3 v)
