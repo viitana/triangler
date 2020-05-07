@@ -106,8 +106,7 @@ private:
 
 	// Object grab tracking
 	bool mouse_left_held_ = false;
-	glm::vec3 obj_held_pos_;
-	glm::mat4 obj_held_transform_;
+	glm::vec3 obj_grab_previous_pos_;
 
 	// Frametime tracking
 	static constexpr int frametime_buffer_size_ = 100;

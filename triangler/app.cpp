@@ -144,30 +144,31 @@ void App::HandleCursorMove(double xpos, double ypos)
 		}
 		if (!selected_obj) return;
 
+		glm::vec3 grab_current_pos = camera_.Position() + r.Direction() * min_t;
+
 		if (mouse_left_held_)
 		{
 			if (min_t > 0) {
-				glm::vec3 heldpos = camera_.Position() + r.Direction() * min_t;
-				glm::vec3 current = glm::normalize(heldpos);
-				glm::vec3 held = glm::normalize(obj_held_pos_);
+				glm::vec3 grab_current_pos_n = glm::normalize(grab_current_pos);
+				glm::vec3 grab_previous_pos_n = glm::normalize(obj_grab_previous_pos_);
 
-				glm::vec3 axis = glm::cross(current, held);
+				glm::vec3 axis = glm::cross(grab_current_pos_n, grab_previous_pos_n);
 
-				const float phi = acos(glm::dot(current, held));
-				const float dot = glm::dot(current, held);
+				const float phi = acos(glm::dot(grab_current_pos_n, grab_previous_pos_n));
+				const float dot = glm::dot(grab_current_pos_n, grab_previous_pos_n);
 
-				selected_obj->SetTransform(glm::rotate(-phi, axis) * obj_held_transform_);
+				selected_obj->TransformBy(glm::rotate(-phi, axis));
+
+				obj_grab_previous_pos_ = grab_current_pos;
 			}
 		}
 		else
 		{
 			if (min_t > 0) {
-				glm::vec3 heldpos = camera_.Position() + r.Direction() * min_t;
-				obj_held_pos_ = heldpos;
-				obj_held_transform_ = selected_obj->transform;
+				obj_grab_previous_pos_ = grab_current_pos;
 
 				mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
-				mesh_grid_.v.insert(mesh_grid_.v.begin(), heldpos);
+				mesh_grid_.v.insert(mesh_grid_.v.begin(), grab_current_pos);
 				mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
 				mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
 				InitRenderGrid();
@@ -204,7 +205,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 				glm::vec4(0, 1, 0, 1)
 			);
 
-			glm::vec3 axis = glm::cross(heldpos, obj_held_pos_);
+			glm::vec3 axis = glm::cross(heldpos, obj_grab_previous_pos_);
 			addDebugVector(
 				mesh_grid_,
 				glm::vec3(0),

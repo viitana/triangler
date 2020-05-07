@@ -376,7 +376,7 @@ void LoadOBJf(Object3D* obj, std::string path, glm::vec3 offset)
 	}
 
 	obj->mesh.radius = sqrtf(maxlen);
-	obj->mesh.mid = avgVec;
+	obj->mesh.mid = glm::vec3(0.f);// avgVec;
 
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
