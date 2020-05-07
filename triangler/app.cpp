@@ -135,7 +135,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 		Object3D* selected_obj = NULL;
 		for (auto obj : objs_)
 		{
-			bool hit = r.IntersectSphere(glm::vec3(0), obj->mesh.radius, rt);
+			bool hit = r.IntersectSphere(obj->GetMid(), obj->mesh.radius, rt);
 			if (hit && rt < min_t)
 			{
 				selected_obj = obj;
@@ -178,7 +178,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 	}
 	else
 	{
-		if (mouse_left_held_)
+		if (mouse_left_held_) // We have just let go of left mouse
 		{
 			Ray r = camera_.GenerateRay(xpos, ypos);
 			float rt = 0;
@@ -412,12 +412,12 @@ void App::InitRenderMain()
 	objs_.push_back(obj);
 
 	InitObject(obj);
-	obj->Translate({ -0.3, 0, 0 });
+	//obj->Translate({ -0.3, 0, 0 });
 
-	Object3D* obj2 = new Object3D();
-	objs_.push_back(obj2);
-	InitObject(obj2);
-	obj2->Translate({ 0.3, 0, 0 });
+	//Object3D* obj2 = new Object3D();
+	//objs_.push_back(obj2);
+	//InitObject(obj2);
+	//obj2->Translate({ 0.3, 0, 0 });
 }
 
 // Load up Freetype font glyphs, generate and bind character textures

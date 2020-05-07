@@ -32,6 +32,11 @@ struct Object3D
 		transform = m;
 	}
 
+	const glm::vec3 GetMid() const
+	{
+		return transform * glm::vec4(mesh.mid, 1);
+	}
+
 	const glm::mat4 GetTransform() const
 	{
 		return transform;

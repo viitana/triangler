@@ -17,9 +17,11 @@ const bool Ray::IntersectXZPlane(float y, float& t)
 
 const bool Ray::IntersectSphere(const glm::vec3 mid, const float r, float& t)
 {
+	auto originAdjusted = origin_ - mid;
+
 	const float a = glm::dot(direction_, direction_);
-	const float b = 2.0f * glm::dot(direction_, origin_);
-	const float c = glm::dot(origin_, origin_) - r * r;
+	const float b = 2.0f * glm::dot(direction_, originAdjusted);
+	const float c = glm::dot(originAdjusted, originAdjusted) - r * r;
 
 	const float disc = b * b - 4.0f * a * c;
 	

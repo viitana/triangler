@@ -13,6 +13,9 @@ struct Mesh
 	// Colors
 	std::vector<glm::vec4> c;
 
+	// Mid point
+	glm::vec3 mid = { 0, 0 , 0 };
+
 	float radius;
 
 	void AddVert(glm::vec3 vert)

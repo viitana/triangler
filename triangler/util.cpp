@@ -331,7 +331,6 @@ void LoadOBJf(Object3D* obj, std::string path, glm::vec3 offset)
 
 	int v = 0;
 	int t = 0;
-	float maxlen = 0;
 
 	while (std::getline(infile, line))
 	{
@@ -349,10 +348,9 @@ void LoadOBJf(Object3D* obj, std::string path, glm::vec3 offset)
 			else
 			{
 				extractFloats(iss, coord);
-				glm::vec3  vec = glm::vec3(coord[0], coord[1], coord[2]);
+				glm::vec3 vec = glm::vec3(coord[0], coord[1], coord[2]);
 				obj->mesh.AddVert(vec);
 				avg += vec;
-				if (glm::length2(vec) > maxlen) maxlen = length2(vec);
 				v++;
 			}
 		}
@@ -367,20 +365,24 @@ void LoadOBJf(Object3D* obj, std::string path, glm::vec3 offset)
 
 	avg = avg / static_cast<double>(v);
 
-	//for (auto& vert : mesh.v)
-	//	vert = (vert - glm::vec3(avg));
+	glm::vec3 avgVec = glm::vec3(avg);
+	float maxlen = 0;
+	for (auto& vert : obj->mesh.v)
+	{
+		// Center to mid
+		vert = (vert - avgVec);
+		// Find furthest vertice (mesh radius)
+		if (glm::length2(vert) > maxlen) maxlen = glm::length2(vert);
+	}
 
 	obj->mesh.radius = sqrtf(maxlen);
-
-	//mesh.radius = 0.3f;
-	//mesh.mid = glm::vec3(avg);
-
+	obj->mesh.mid = avgVec;
 
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end - start;
 
 	std::cout
-		<< "Loaded OBJ mssh, vertices: "
+		<< "Loaded OBJ mesh, vertices: "
 		<< obj->mesh.v.size() << "/" << v
 		<< ", triangles: "
 		<< obj->mesh.t.size() / 3 << "/" << t
