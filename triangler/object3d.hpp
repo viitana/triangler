@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include "mesh.hpp"
 
@@ -15,36 +16,52 @@ struct Object3D
 	GLuint normal_buffer_id = -1;
 
 	Mesh mesh;
-	glm::mat4 transform = glm::mat4(1.0f);
+	glm::mat4 transform_scale = glm::mat4(1.0f);
+	glm::mat4 transform_rotation = glm::mat4(1.0f);
+	glm::mat4 transform_translation = glm::mat4(1.0f);
 
-	glm::vec3 GetPos() const
+	glm::vec3 GetOrigin() const
 	{
-		return transform * glm::vec4(0);
-	}
-
-	void TransformBy(const glm::mat4 m)
-	{
-		transform = m * transform;
-	}
-
-	void SetTransform(const glm::mat4 m)
-	{
-		transform = m;
+		return GetTransform() * glm::vec4(0);
 	}
 
 	const glm::vec3 GetMid() const
 	{
-		return transform * glm::vec4(mesh.mid, 1);
+		return GetTransform() * glm::vec4(mesh.mid, 1);
 	}
 
 	const glm::mat4 GetTransform() const
 	{
-		return transform;
+		return transform_translation * transform_rotation * transform_scale;
 	}
 
 	void Translate(const glm::vec3 v)
 	{
-		transform = glm::translate(transform, v);
+		transform_translation = glm::translate(transform_translation, v);
+	}
+
+	void Translate(const glm::mat4 m)
+	{
+		transform_translation *= m;
+	}
+
+	void Scale(const float factor)
+	{
+		transform_scale *= glm::scale(glm::vec3(factor));
+		mesh.radius *= factor;
+	}
+
+	// Assumes global space axis
+	void Rotate(const float deg, const glm::vec3 axis)
+	{
+		transform_rotation = glm::rotate(deg, axis) * transform_rotation;
+	}
+
+	// Transform a direction vector to global space
+	// TODO: Apply scale as well
+	const glm::vec3 DirectionToGlobal(const glm::vec3 v) const
+	{
+		return glm::inverse(transform_rotation) * glm::inverse(transform_scale) * glm::vec4(v, 1.f);
 	}
 
 	void ClearBuffers()

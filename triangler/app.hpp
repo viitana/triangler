@@ -25,7 +25,7 @@
 #include "object3d.hpp"
 #include "menu.hpp"
 
-#define TRIANGLER_VERSION "0.0.1"
+#define TRIANGLER_VERSION "0.0.2"
 #define WINDOW_START_WIDTH 1280
 #define WINDOW_START_HEIGHT 800
 
@@ -97,7 +97,7 @@ private:
 	Mesh mesh_grid_;
 	std::map<GLchar, Character> chars_;
 
-	Camera camera_ = { {0, 2, 2}, {0, -2, -2}, 45.f, .05f, 100.f };
+	Camera camera_ = { {0, 1, 1}, {0, -1, -1}, 45.f, .05f, 100.f };
 
 	// Grid grab tracking
 	bool mouse_mid_held_ = false;
@@ -112,6 +112,10 @@ private:
 	static constexpr int frametime_buffer_size_ = 100;
 	std::queue<double> frametimes_;
 	float framerate_;
+
+	unsigned long tri_count_ = 0u;
+	unsigned long vert_count_ = 0u;
+	unsigned long obj_count_ = 0u;
 
 	// Camera/perspective properties
 	glm::vec3 u_;

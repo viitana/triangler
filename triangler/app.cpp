@@ -83,8 +83,15 @@ void App::Run()
 		// Clear color, depth buffers
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Aoply current render mode
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		// Aoply render mode
+		if (config_[TRIANGLER_SETTING_ID_WIREFRAME].GetBool())
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
 
 		RenderMain();
 
@@ -144,7 +151,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 		}
 		if (!selected_obj) return;
 
-		glm::vec3 grab_current_pos = camera_.Position() + r.Direction() * min_t;
+		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - selected_obj->GetMid();
 
 		if (mouse_left_held_)
 		{
@@ -152,12 +159,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 				glm::vec3 grab_current_pos_n = glm::normalize(grab_current_pos);
 				glm::vec3 grab_previous_pos_n = glm::normalize(obj_grab_previous_pos_);
 
-				glm::vec3 axis = glm::cross(grab_current_pos_n, grab_previous_pos_n);
+				glm::vec3 grab_current_pos_n_objlocal = selected_obj->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
+				glm::vec3 grab_previous_pos_n_objlocal = selected_obj->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
+
+				glm::vec3 axis_objlocal = glm::cross(grab_current_pos_n_objlocal, grab_previous_pos_n_objlocal);
+				glm::vec3 axis = selected_obj->DirectionToGlobal(axis_objlocal);
 
 				const float phi = acos(glm::dot(grab_current_pos_n, grab_previous_pos_n));
 				const float dot = glm::dot(grab_current_pos_n, grab_previous_pos_n);
 
-				selected_obj->TransformBy(glm::rotate(-phi, axis));
+				selected_obj->Rotate(-phi, axis);
 
 				obj_grab_previous_pos_ = grab_current_pos;
 			}
@@ -165,14 +176,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 		else
 		{
 			if (min_t > 0) {
-				obj_grab_previous_pos_ = grab_current_pos;
-
-				mesh_grid_.v.insert(mesh_grid_.v.begin(), glm::vec3(0));
-				mesh_grid_.v.insert(mesh_grid_.v.begin(), grab_current_pos);
-				mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
-				mesh_grid_.c.insert(mesh_grid_.c.begin(), glm::vec4(0, 1, 0, 1));
+				addDebugVector(
+					mesh_grid_,
+					selected_obj->GetMid(),
+					grab_current_pos + selected_obj->GetMid(),
+					glm::vec4(0, 1, 0, 1)
+				);
+				vert_count_ += 2;
 				InitRenderGrid();
 
+				obj_grab_previous_pos_ = grab_current_pos;
 				mouse_left_held_ = true;
 			}
 		}	
@@ -181,39 +194,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		if (mouse_left_held_) // We have just let go of left mouse
 		{
-			Ray r = camera_.GenerateRay(xpos, ypos);
-			float rt = 0;
-			float min_t = std::numeric_limits<float>::max();
-			Object3D* selected_obj = NULL;
-			for (auto obj : objs_)
-			{
-				bool hit = r.IntersectSphere(glm::vec3(0), obj->mesh.radius, rt);
-				if (hit && rt < min_t)
-				{
-					selected_obj = obj;
-					min_t = rt;
-				}
-			}
-			if (!selected_obj) return;
 
-			glm::vec3 heldpos = camera_.Position() + r.Direction() * min_t;
+		//	glm::vec3 axis = glm::cross(heldpos, obj_grab_previous_pos_);
+		//	addDebugVector(
+		//		mesh_grid_,
+		//		glm::vec3(0),
+		//		glm::normalize(axis),
+		//		glm::vec4(0, 0, 1, 1)
+		//	);
 
-			addDebugVector(
-				mesh_grid_,
-				glm::vec3(0),
-				heldpos,
-				glm::vec4(0, 1, 0, 1)
-			);
-
-			glm::vec3 axis = glm::cross(heldpos, obj_grab_previous_pos_);
-			addDebugVector(
-				mesh_grid_,
-				glm::vec3(0),
-				glm::normalize(axis),
-				glm::vec4(0, 0, 1, 1)
-			);
-
-			InitRenderGrid();
+		//	InitRenderGrid();
 		}
 
 		mouse_left_held_ = false;
@@ -239,7 +229,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 			if (rt > 0)
 			{
 				glm::vec3 heldpos = grid_held_camera_pos_ + r.Direction() * rt;
-				camera_.SetPosition(grid_held_camera_pos_ + (grid_held_pos_ - heldpos));
+				camera_.SetPosition(grid_held_camera_pos_ + grid_held_pos_ - heldpos);
 			}
 		}
 		else
@@ -370,8 +360,6 @@ void App::InitObject(Object3D* obj)
 	glGenVertexArrays(1, &obj->vertex_array_id_);
 	glBindVertexArray(obj->vertex_array_id_);
 
-	LoadOBJf(obj, "assets/bunny_lores.obj");
-
 	// Mesh VBO
 	glGenBuffers(1, &obj->vertex_buffer_id);
 	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
@@ -398,8 +386,12 @@ void App::InitObject(Object3D* obj)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-}
 
+	// Increment drawing stats
+	obj_count_++;
+	tri_count_ += obj->mesh.v.size() / 3;
+	vert_count_ += obj->mesh.v.size();
+}
 // Load 3D shaders, generate and bind vertex array object,
 // add starter object
 void App::InitRenderMain()
@@ -409,16 +401,25 @@ void App::InitRenderMain()
 
 	// Get mesh, setup index & vertice VBO
 	//genIcosphere(mesh_, 0);
-	Object3D* obj = new Object3D();
-	objs_.push_back(obj);
+	Object3D* obj1 = new Object3D();
+	LoadOBJf(obj1, "assets/bunny_lores.obj");
+	objs_.push_back(obj1);
+	InitObject(obj1);
+	obj1->Translate({ -0.3f, 0, 0 });
 
-	InitObject(obj);
-	//obj->Translate({ -0.3, 0, 0 });
+	Object3D* obj2 = new Object3D();
+	loadIcosphere(obj2, 0);
+	obj2->Scale(0.08f);
+	objs_.push_back(obj2);
+	InitObject(obj2);
+	obj2->Translate({ 0, 0, -0.25f });
 
-	//Object3D* obj2 = new Object3D();
-	//objs_.push_back(obj2);
-	//InitObject(obj2);
-	//obj2->Translate({ 0.3, 0, 0 });
+	Object3D* obj3 = new Object3D();
+	loadIcosphere(obj3, 9);
+	obj3->Scale(0.081f);
+	objs_.push_back(obj3);
+	InitObject(obj3);
+	obj3->Translate({ 0.3f, 0, 0 });
 }
 
 // Load up Freetype font glyphs, generate and bind character textures
@@ -552,7 +553,7 @@ void App::RenderTris(const Object3D* obj)
 	view_main_ = camera_.View();
 
 	// Construct model-world-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * obj->transform;
+	glm::mat4 mvp = projection_main_ * view_main_ * obj->GetTransform();
 
 	// Bind shader
 	glUseProgram(program_id_);
@@ -737,8 +738,8 @@ void App::RenderDebug()
 
 	std::ostringstream l1, l2, l3, l4, l5;
 	l1 << "Triangler version " << TRIANGLER_VERSION;
-	l2 << "triangles: " << objs_[0]->mesh.t.size() / 3;
-	l3 << "vertices:  " << objs_[0]->mesh.v.size();
+	l2 << "triangles: " << tri_count_;
+	l3 << "vertices:  " << vert_count_;
 	l4 << "viewport:  " << sizeX << "x" << sizeY;
 	l5 << "framerate: " << framerate_;
 

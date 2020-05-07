@@ -392,6 +392,11 @@ void LoadOBJf(Object3D* obj, std::string path, glm::vec3 offset)
 
 }
 
+void loadIcosphere(Object3D* obj, int subdivisions)
+{
+	genIcosphere(obj->mesh, subdivisions);
+}
+
 void printVec(glm::vec3 v)
 {
 	std::cout << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
