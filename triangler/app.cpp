@@ -267,8 +267,6 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE)
 			glfwSetWindowShouldClose(window_, GLFW_TRUE);
-		if (key == GLFW_KEY_Y)
-			//config_.RenderMode = config_.RenderMode == GL_FILL ? GL_LINE : GL_FILL;
 		if (key == GLFW_KEY_R) {
 			glDeleteProgram(program_id_);
 			program_id_ = LoadShaders("vertex.shader", "fragment.shader");
@@ -408,14 +406,14 @@ void App::InitRenderMain()
 	obj1->Translate({ -0.3f, 0, 0 });
 
 	Object3D* obj2 = new Object3D();
-	loadIcosphere(obj2, 0);
+	loadIcosphere(obj2, 1);
 	obj2->Scale(0.08f);
 	objs_.push_back(obj2);
 	InitObject(obj2);
 	obj2->Translate({ 0, 0, -0.25f });
 
 	Object3D* obj3 = new Object3D();
-	loadIcosphere(obj3, 9);
+	loadIcosphere(obj3, 3);
 	obj3->Scale(0.081f);
 	objs_.push_back(obj3);
 	InitObject(obj3);
@@ -552,13 +550,22 @@ void App::RenderTris(const Object3D* obj)
 	projection_main_ = camera_.Projection((float)width_, (float)height_);
 	view_main_ = camera_.View();
 
-	// Construct model-world-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * obj->GetTransform();
+	const glm::mat4 model = obj->GetTransform();
+	const int flat = config_[TRIANGLER_SETTING_ID_FLAT].GetBool() ? 1 : 0;
+
+	// Model-view-projection
+	const glm::mat4 mvp = projection_main_ * view_main_ * obj->GetTransform();
 
 	// Bind shader
 	glUseProgram(program_id_);
 
 	// Uniforms
+	GLuint flatID = glGetUniformLocation(program_id_, "flat_shading");
+	glUniform1i(flatID, flat);
+
+	GLuint modelID = glGetUniformLocation(program_id_, "model_to_world");
+	glUniformMatrix4fv(modelID, 1, GL_FALSE, &model[0][0]);
+
 	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
@@ -682,7 +689,7 @@ void App::RenderGrid()
 	// Retrieve grid height from config
 	auto height = config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat();
 
-	// Construct model-world-projection
+	// Model-view-projection
 	glm::mat4 mvp = projection_main_ * view_main_ * glm::translate(glm::vec3(0, height,0)) * glm::mat4(1.0);
 
 	// Bind shader

@@ -86,7 +86,7 @@ private:
 	unsigned width_ = WINDOW_START_WIDTH;
 	glm::mat4 projection_main_;
 	glm::mat4 view_main_;
-	glm::vec3 dir_light_ = { 1.2f, 1.f, -4.f };
+	glm::vec3 dir_light_ = { 1.1f, -1.3f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
 
 	Object3D obj_selected_;

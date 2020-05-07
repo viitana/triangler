@@ -48,6 +48,7 @@ TrianglerConfig::TrianglerConfig()
 	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_SPECULAR, new BoolSetting("Specular lights", true)));
 	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_DEBUG, new BoolSetting("Draw debug lines", true)));
 	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_WIREFRAME, new BoolSetting("Wireframe", false)));
+	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_FLAT, new BoolSetting("Flat shading", false)));
 }
 
 TrianglerConfig::~TrianglerConfig()
