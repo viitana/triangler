@@ -97,3 +97,10 @@ struct Object3D
 	}
 
 };
+
+struct Point3D
+{
+	Point3D(glm::vec3 p, glm::vec4 c) : pos(p), color(c) {};
+	glm::vec3 pos;
+	glm::vec4 color;
+};

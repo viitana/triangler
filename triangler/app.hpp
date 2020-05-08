@@ -27,7 +27,7 @@
 
 #define TRIANGLER_VERSION "0.0.2"
 #define WINDOW_START_WIDTH 1280
-#define WINDOW_START_HEIGHT 800
+#define WINDOW_START_HEIGHT 720
 
 class App
 {
@@ -43,6 +43,7 @@ public:
 	void InitFont();
 	void InitRenderText();
 	void InitRenderGrid();
+	void InitRenderPoint();
 	void InitRenderDebug();
 	void InitObject(Object3D* obj);
 	void InitLineObject(Object3D* obj);
@@ -61,6 +62,7 @@ public:
 	void RenderMainLines();
 	void RenderTris(const Object3D* obj);
 	void RenderLines(const Object3D* obj);
+	void RenderPoints();
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderStats();
 	void RenderGrid();
@@ -74,6 +76,7 @@ private:
 	GLuint program_id_;
 	GLuint program_id_text_;
 	GLuint program_id_line_;
+	GLuint program_id_point_;
 
 	GLuint vertex_array_id_;
 
@@ -93,6 +96,10 @@ private:
 	GLuint vertex_buffer_grid_;
 	GLuint color_buffer_grid_;
 
+	GLuint vertex_array_id_point_;
+	GLuint vertex_buffer_point_;
+	GLuint color_buffer_point_;
+
 	GLuint vertex_array_id_debug_;
 	GLuint vertex_buffer_debug_;
 	GLuint color_buffer_debug_;
@@ -110,6 +117,8 @@ private:
 	std::vector<Object3D*> objs_line_;
 
 	std::vector<Object3D*> coord_rings_;
+	std::vector<glm::vec3> coord_points_;
+	std::vector<glm::vec4> coord_point_colors_;
 
 	TrianglerConfig config_;
 

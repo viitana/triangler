@@ -26,6 +26,9 @@
 // lighting tied to cam dir
 // indexed, nonindexed types to objs (enum?)
 // separate all headers and implementations
+// point draw support
+// unify projection calc for all render steps
+// don't regenerate VAOs on data change/improve init stuff
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -64,15 +67,16 @@ bool App::Initialize()
 
 	glClearColor(0.03f, 0.03f, 0.03f, 0.0f);
 
+	InitDefaultObjs();
+	InitTestAssets();
+
 	InitRenderMain();
 	InitFont();
 	InitRenderText();
 	InitRenderGrid();
+	InitRenderPoint();
 	InitRenderDebug();
 	InitGUI();
-
-	InitDefaultObjs();
-	InitTestAssets();
 
 	return true;
 }
@@ -88,6 +92,8 @@ void App::Run()
 
 		// Clear color, depth buffers
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glPointSize(6);
 
 		// Aoply render mode
 		if (config_[TRIANGLER_SETTING_ID_WIREFRAME].GetBool())
@@ -108,6 +114,8 @@ void App::Run()
 
 		if (config_[TRIANGLER_SETTING_ID_DEBUG].GetBool())
 			RenderDebug();
+
+		RenderPoints();
 
 		// Debug text render
 		RenderStats();
@@ -276,12 +284,18 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		const bool xhit = r.IntersectRing(coord_rings_[0]->GetMid(), { 1, 0, 0 }, obj_focused_->mesh.radius, rt);
 		coord_rings_[0]->line_color = xhit ? glm::vec4(1.f) : glm::vec4(1, 0, 0, 1);
+		coord_points_[0] = coord_rings_[0]->GetMid() + ClosestCirlePoint(coord_rings_[0]->GetMid(), obj_focused_->mesh.radius, r.Origin() + rt * r.Direction());
+		coord_point_colors_[0] =  xhit ? glm::vec4(1, 0, 0, 1) : glm::vec4(0.f);
 
 		const bool yhit = r.IntersectRing(coord_rings_[1]->GetMid(), { 0, 1, 0 }, obj_focused_->mesh.radius, rt);
 		coord_rings_[1]->line_color = yhit ? glm::vec4(1.f) : glm::vec4(0, 1, 0, 1);
+		coord_points_[1] = coord_rings_[1]->GetMid() + ClosestCirlePoint(coord_rings_[1]->GetMid(), obj_focused_->mesh.radius, r.Origin() +  rt * r.Direction());
+		coord_point_colors_[1] = yhit ? glm::vec4(0, 1, 0, 1) : glm::vec4(0.f);
 
 		const bool zhit = r.IntersectRing(coord_rings_[2]->GetMid(), { 0, 0, 1 }, obj_focused_->mesh.radius, rt);
 		coord_rings_[2]->line_color = zhit ? glm::vec4(1.f) : glm::vec4(0, 0, 1, 1);
+		coord_points_[2] = coord_rings_[2]->GetMid() + ClosestCirlePoint(coord_rings_[2]->GetMid(), obj_focused_->mesh.radius, r.Origin() + rt * r.Direction());
+		coord_point_colors_[2] = zhit ? glm::vec4(0, 0, 1, 1) : glm::vec4(0.f);
 	}
 	
 
@@ -471,6 +485,7 @@ void App::InitTestAssets()
 
 void App::InitDefaultObjs()
 {
+	// Generate coordinate/axis rings that will enclose any selected object
 	Object3D* xring = new Object3D();
 	genRing(xring, 64, {1, 0, 0, 1});
 	xring->Rotate(PI / 2.f, { 0, 0, 1 });
@@ -493,6 +508,15 @@ void App::InitDefaultObjs()
 	objs_line_.push_back(zring);
 	coord_rings_.push_back(zring);
 	InitLineObject(zring);
+
+	// Add indicator points for each coordinate ring
+	coord_points_.push_back({ 0, 0, 0 });
+	coord_points_.push_back({ 0, 0, 0 });
+	coord_points_.push_back({ 0, 0, 0 });
+
+	coord_point_colors_.push_back({ 1, 0, 0, 1 });
+	coord_point_colors_.push_back({ 0, 1, 0, 1 });
+	coord_point_colors_.push_back({ 0, 0, 1, 1 });
 }
 
 void App::InitRenderMain()
@@ -613,6 +637,29 @@ void App::InitRenderGrid()
 	glGenBuffers(1, &color_buffer_grid_);
 	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_grid_);
 	glBufferData(GL_ARRAY_BUFFER, mesh_grid_.c.size() * sizeof(mesh_grid_.c[0]), mesh_grid_.c.data(), GL_STATIC_DRAW);
+
+	// Unbind VAO, VBO
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void App::InitRenderPoint()
+{
+	program_id_point_ = LoadShaders("vertex_point.shader", "fragment_point.shader");
+
+	// VAO
+	if (!glIsVertexArray(vertex_array_id_point_)) glGenVertexArrays(1, &vertex_array_id_point_);
+	glBindVertexArray(vertex_array_id_point_);
+
+	// Setup vertice VBO
+	if (!glIsBuffer(vertex_buffer_point_)) glGenBuffers(1, &vertex_buffer_point_);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_point_);
+	glBufferData(GL_ARRAY_BUFFER, coord_points_.size() * sizeof(coord_points_[0]), coord_points_.data(), GL_STATIC_DRAW);
+
+	// Setup color VBO
+	if (!glIsBuffer(color_buffer_point_)) glGenBuffers(1, &color_buffer_point_);
+	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_point_);
+	glBufferData(GL_ARRAY_BUFFER, coord_point_colors_.size() * sizeof(coord_point_colors_[0]), coord_point_colors_.data(), GL_STATIC_DRAW);
 
 	// Unbind VAO, VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -780,6 +827,54 @@ void App::RenderLines(const Object3D* obj)
 	glDrawArrays(GL_LINES, 0, obj->mesh.v.size());
 
 	glDisableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void App::RenderPoints()
+{
+	InitRenderPoint();
+
+	const glm::mat4 mvp = projection_main_ * view_main_;
+
+	glUseProgram(program_id_point_);
+
+	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+
+	// Bind VAO, index
+	glBindVertexArray(vertex_array_id_point_);
+
+	// Set up vertex attributes
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_point_);
+	glVertexAttribPointer(
+		0,                  // attribute pos in shader
+		3,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	// Set up vertex attributes
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_point_);
+	glVertexAttribPointer(
+		1,                  // attribute pos in shader
+		4,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	// Draw
+	glDrawArrays(GL_POINTS, 0, coord_points_.size());
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);

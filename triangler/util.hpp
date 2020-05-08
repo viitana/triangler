@@ -20,3 +20,4 @@ void genRing(Object3D* obj, int points, glm::vec4 color);
 void genGrid(Mesh& mesh, const float dim, const int segments, const int subgrids, const glm::vec4 color);
 void printVec(glm::vec3 v);
 void addDebugVector(Mesh& mesh, const glm::vec3 start, const glm::vec3 end, const glm::vec4 color);
+const glm::vec3 ClosestCirlePoint(const glm::vec3 mid, const float r, const glm::vec3 p);

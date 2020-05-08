@@ -412,3 +412,9 @@ void printVec(glm::vec3 v)
 {
 	std::cout << "[" << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
 }
+
+// Relative to circle middle
+const glm::vec3 ClosestCirlePoint(const glm::vec3 mid, const float r, const glm::vec3 p)
+{
+	return r * glm::normalize(p - mid);
+}

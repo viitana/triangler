@@ -62,6 +62,12 @@
     <None Include="vertex_line.shader">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="fragment_point.shader">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="vertex_point.shader">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.hpp">
