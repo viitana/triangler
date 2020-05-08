@@ -15,6 +15,20 @@ const bool Ray::IntersectXZPlane(float y, float& t)
 	return t > 0;
 }
 
+const bool Ray::IntersectPlane(const glm::vec3 p, const glm::vec3 n, float& t)
+{
+	const float d = -n.x * p.x - n.y * p.y - n.z * p.z;
+	t = -(d + glm::dot(n, origin_)) / glm::dot(n, direction_);
+	return t > 0;
+}
+
+const bool Ray::IntersectRing(const glm::vec3 p, const glm::vec3 n, const float r, float& t)
+{
+	const bool planehit = IntersectPlane(p, n, t);
+	if (!planehit) return false;
+	return std::abs(glm::distance(p, origin_ + t * direction_) - r) < 0.05f * r;
+}
+
 const bool Ray::IntersectSphere(const glm::vec3 mid, const float r, float& t)
 {
 	auto originAdjusted = origin_ - mid;

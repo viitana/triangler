@@ -50,6 +50,7 @@ public:
 	void Run();
 	void CheckTiming();
 	void WASDMove();
+	void FocusObject(Object3D* obj);
 
 	void HandleCursorMove(double xpos, double ypos);
 	void HandleResize(int height, int width);
@@ -104,9 +105,11 @@ private:
 	glm::vec3 dir_light_ = { 1.1f, -1.3f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
 
-	Object3D obj_selected_;
+	Object3D* obj_focused_;
 	std::vector<Object3D*> objs_;
 	std::vector<Object3D*> objs_line_;
+
+	std::vector<Object3D*> coord_rings_;
 
 	TrianglerConfig config_;
 

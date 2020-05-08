@@ -25,6 +25,7 @@
 // camera straight up/down
 // lighting tied to cam dir
 // indexed, nonindexed types to objs (enum?)
+// separate all headers and implementations
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -61,7 +62,7 @@ bool App::Initialize()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+	glClearColor(0.03f, 0.03f, 0.03f, 0.0f);
 
 	InitRenderMain();
 	InitFont();
@@ -128,6 +129,19 @@ void App::Run()
 	glfwTerminate();
 }
 
+void App::FocusObject(Object3D* obj)
+{
+	obj_focused_ = obj;
+	// Move coordinate rings to enclose focused object
+	for (Object3D* r : coord_rings_)
+	{
+		r->ResetTranslation();
+		r->Translate(obj->GetMid());
+		r->ResetScale();
+		r->Scale(obj->mesh.radius);
+	}
+}
+
 void App::CheckTiming() {
 	double time = glfwGetTime();
 	frametimes_.emplace(glfwGetTime());
@@ -142,11 +156,12 @@ void App::HandleCursorMove(double xpos, double ypos)
 {
 	glm::vec2 pos(xpos, ypos);
 
+	Ray r = camera_.GenerateRay(xpos, ypos);
+	float rt = 0;
+
 	// Left mouse to rotate object
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
-		Ray r = camera_.GenerateRay(xpos, ypos);
-		float rt = 0;
 		float min_t = std::numeric_limits<float>::max();
 		Object3D* selected_obj = NULL;
 		for (auto obj : objs_)
@@ -160,7 +175,9 @@ void App::HandleCursorMove(double xpos, double ypos)
 		}
 		if (!selected_obj) return;
 
-		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - selected_obj->GetMid();
+		FocusObject(selected_obj);
+
+		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - obj_focused_->GetMid();
 
 		if (mouse_left_held_)
 		{
@@ -168,16 +185,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 				glm::vec3 grab_current_pos_n = glm::normalize(grab_current_pos);
 				glm::vec3 grab_previous_pos_n = glm::normalize(obj_grab_previous_pos_);
 
-				glm::vec3 grab_current_pos_n_objlocal = selected_obj->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
-				glm::vec3 grab_previous_pos_n_objlocal = selected_obj->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
+				glm::vec3 grab_current_pos_n_objlocal = obj_focused_->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
+				glm::vec3 grab_previous_pos_n_objlocal = obj_focused_->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
 
 				glm::vec3 axis_objlocal = glm::cross(grab_current_pos_n_objlocal, grab_previous_pos_n_objlocal);
-				glm::vec3 axis = selected_obj->DirectionToGlobal(axis_objlocal);
+				glm::vec3 axis = obj_focused_->DirectionToGlobal(axis_objlocal);
 
 				const float phi = acos(glm::dot(grab_current_pos_n, grab_previous_pos_n));
 				const float dot = glm::dot(grab_current_pos_n, grab_previous_pos_n);
 
-				selected_obj->Rotate(-phi, axis);
+				obj_focused_->Rotate(-phi, axis);
 
 				obj_grab_previous_pos_ = grab_current_pos;
 			}
@@ -187,8 +204,8 @@ void App::HandleCursorMove(double xpos, double ypos)
 			if (min_t > 0) {
 				addDebugVector(
 					mesh_debug_,
-					selected_obj->GetMid(),
-					grab_current_pos + selected_obj->GetMid(),
+					obj_focused_->GetMid(),
+					grab_current_pos + obj_focused_->GetMid(),
 					glm::vec4(0, 1, 0, 1)
 				);
 				vert_count_ += 2;
@@ -215,43 +232,58 @@ void App::HandleCursorMove(double xpos, double ypos)
 	// Middle mouse to move camera
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS)
 	{
-		Ray r = camera_.GenerateRay(xpos, ypos);
-		float rt;
-		r.IntersectXZPlane(config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat(), rt);
+		const bool hit = r.IntersectPlane({ 0, config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat(), 0 }, { 0, 1, 0 }, rt);
 
-		if (mouse_mid_held_)
+		if (hit)
 		{
-			if (rt > 0)
+			if (mouse_mid_held_)
 			{
-				glm::vec3 heldpos = grid_held_camera_pos_ + r.Direction() * rt;
-				camera_.SetPosition(grid_held_camera_pos_ + grid_held_pos_ - heldpos);
+				if (rt > 0)
+				{
+					glm::vec3 heldpos = grid_held_camera_pos_ + r.Direction() * rt;
+					camera_.SetPosition(grid_held_camera_pos_ + grid_held_pos_ - heldpos);
+				}
+			}
+			else
+			{
+				addDebugVector(
+					mesh_debug_,
+					camera_.Position(),
+					camera_.Position() + rt * r.Direction(),
+					glm::vec4(0, 1, 0, 1)
+				);
+				InitRenderDebug();
+
+				glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
+
+				if (rt > 0)
+				{
+					grid_held_pos_ = camera_.Position() + r.Direction() * rt;
+					grid_held_camera_pos_ = camera_.Position();
+				}
+
+				mouse_mid_held_ = true;
 			}
 		}
-		else
-		{
-			addDebugVector(
-				mesh_debug_,
-				camera_.Position(),
-				camera_.Position() + rt * r.Direction(),
-				glm::vec4(0, 1, 0, 1)
-			);
-			InitRenderDebug();
-
-			glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
-
-			if (rt > 0)
-			{
-				grid_held_pos_ = camera_.Position() + r.Direction() * rt;
-				grid_held_camera_pos_ = camera_.Position();
-			}
-
-			mouse_mid_held_ = true;
-		}
+		
 	}
 	else
 	{
 		mouse_mid_held_ = false;
 	}
+
+	if (obj_focused_)
+	{
+		const bool xhit = r.IntersectRing(coord_rings_[0]->GetMid(), { 1, 0, 0 }, obj_focused_->mesh.radius, rt);
+		coord_rings_[0]->line_color = xhit ? glm::vec4(1.f) : glm::vec4(1, 0, 0, 1);
+
+		const bool yhit = r.IntersectRing(coord_rings_[1]->GetMid(), { 0, 1, 0 }, obj_focused_->mesh.radius, rt);
+		coord_rings_[1]->line_color = yhit ? glm::vec4(1.f) : glm::vec4(0, 1, 0, 1);
+
+		const bool zhit = r.IntersectRing(coord_rings_[2]->GetMid(), { 0, 0, 1 }, obj_focused_->mesh.radius, rt);
+		coord_rings_[2]->line_color = zhit ? glm::vec4(1.f) : glm::vec4(0, 0, 1, 1);
+	}
+	
 
 	cursor_pos_ = pos;
 }
@@ -397,12 +429,6 @@ void App::InitLineObject(Object3D* obj)
 	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
 	glBufferData(GL_ARRAY_BUFFER, obj->mesh.v.size() * sizeof(obj->mesh.v[0]), obj->mesh.v.data(), GL_STATIC_DRAW);
 
-	// Colors VBO
-	// NOTE: colors are assumed to have been generated/set already
-	glGenBuffers(1, &obj->color_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, obj->mesh.c.size() * sizeof(obj->mesh.c[0]), obj->mesh.c.data(), GL_STATIC_DRAW);
-
 	// Unbind
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -448,18 +474,24 @@ void App::InitDefaultObjs()
 	Object3D* xring = new Object3D();
 	genRing(xring, 64, {1, 0, 0, 1});
 	xring->Rotate(PI / 2.f, { 0, 0, 1 });
+	xring->line_color = { 1, 0, 0, 1 };
 	objs_line_.push_back(xring);
+	coord_rings_.push_back(xring);
 	InitLineObject(xring);
 
 	Object3D* yring = new Object3D();
 	genRing(yring, 64, { 0, 1, 0, 1 });
+	yring->line_color = { 0, 1, 0, 1 };
 	objs_line_.push_back(yring);
+	coord_rings_.push_back(yring);
 	InitLineObject(yring);
 
 	Object3D* zring = new Object3D();
 	genRing(zring, 64, { 0, 0, 1, 1 });
 	zring->Rotate(PI / 2.f, { 1, 0, 0 });
+	zring->line_color = { 0, 0, 1, 1 };
 	objs_line_.push_back(zring);
+	coord_rings_.push_back(zring);
 	InitLineObject(zring);
 }
 
@@ -718,16 +750,21 @@ void App::RenderLines(const Object3D* obj)
 	glUseProgram(program_id_line_);
 
 	// Uniforms
-	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
+	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
-	GLuint camposID = glGetUniformLocation(program_id_, "camera_pos");
+	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
+
+	GLuint linecolorID = glGetUniformLocation(program_id_line_, "line_color");
+	glUniform4fv(linecolorID, 1, (GLfloat*)&obj->line_color);
+
+	GLuint multicolorID = glGetUniformLocation(program_id_line_, "multi_color");
+	glUniform1i(multicolorID, 0);
 
 	// Bind VAO, VBO
 	glBindVertexArray(obj->vertex_array_id_);
 	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
 
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
@@ -740,20 +777,8 @@ void App::RenderLines(const Object3D* obj)
 		(void*)0            // array buffer offset
 	);
 
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
-	glVertexAttribPointer(
-		1,                  // attribute pos in shader
-		4,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
 	glDrawArrays(GL_LINES, 0, obj->mesh.v.size());
 
-	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -830,11 +855,14 @@ void App::RenderGrid()
 	glUseProgram(program_id_line_);
 
 	// Uniforms
-	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
+	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
-	GLuint camposID = glGetUniformLocation(program_id_, "camera_pos");
+	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
+
+	GLuint multicolorID = glGetUniformLocation(program_id_line_, "multi_color");
+	glUniform1i(multicolorID, 1);
 
 	// Bind VAO
 	glBindVertexArray(vertex_array_id_grid_);
@@ -879,10 +907,10 @@ void App::RenderDebug()
 	glUseProgram(program_id_line_);
 
 	// Uniforms
-	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
+	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
-	GLuint camposID = glGetUniformLocation(program_id_, "camera_pos");
+	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
 
 	// Bind VAO, VBO

@@ -219,10 +219,8 @@ void genRing(Object3D* obj, int points, glm::vec4 color)
 	{
 		obj->mesh.AddVert({ std::cosf(2.f * PI * ((float)i / points)), 0.f, std::sinf(2 * PI * ((float)i / points)) });
 		obj->mesh.AddVert({ std::cosf(2.f * PI * (((float)i+1) / points)), 0.f, std::sinf(2 * PI * (((float)i + 1) / points)) });
-
-		obj->mesh.AddColor(color);
-		obj->mesh.AddColor(color);
 	}
+	obj->line_color = color;
 	obj->mesh.radius = 1.f;
 }
 

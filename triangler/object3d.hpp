@@ -19,7 +19,9 @@ struct Object3D
 	glm::mat4 transform_scale = glm::mat4(1.0f);
 	glm::mat4 transform_rotation = glm::mat4(1.0f);
 	glm::mat4 transform_translation = glm::mat4(1.0f);
+	glm::vec4 line_color = glm::vec4(1.f);
 
+	// Get origin in world-space
 	glm::vec3 GetOrigin() const
 	{
 		return GetTransform() * glm::vec4(0);
@@ -51,10 +53,31 @@ struct Object3D
 		mesh.radius *= factor;
 	}
 
+	void Rotate(const glm::mat4 m)
+	{
+		transform_rotation *= m;
+	}
+
 	// Assumes global space axis
 	void Rotate(const float deg, const glm::vec3 axis)
 	{
 		transform_rotation = glm::rotate(deg, axis) * transform_rotation;
+	}
+
+
+	void ResetRotation()
+	{
+		transform_rotation = glm::mat4(1.f);
+	}
+
+	void ResetScale()
+	{
+		transform_scale = glm::mat4(1.f);
+	}
+
+	void ResetTranslation()
+	{
+		transform_translation = glm::mat4(1.f);
 	}
 
 	// Transform a direction vector to global space
