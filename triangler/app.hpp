@@ -36,12 +36,16 @@ public:
 	bool Initialize();
 	bool InitGLFW();
 	bool InitGLEW();
+	void InitDefaultObjs();
+	void InitTestAssets();
 	void InitRenderMain();
+	void InitRenderLines();
 	void InitFont();
 	void InitRenderText();
 	void InitRenderGrid();
+	void InitRenderDebug();
 	void InitObject(Object3D* obj);
-	void BindObject(const Object3D* obj);
+	void InitLineObject(Object3D* obj);
 
 	void Run();
 	void CheckTiming();
@@ -53,10 +57,13 @@ public:
 	void HandleKey(int key, int scancode, int action, int mods);
 
 	void RenderMain();
+	void RenderMainLines();
 	void RenderTris(const Object3D* obj);
+	void RenderLines(const Object3D* obj);
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
-	void RenderDebug();
+	void RenderStats();
 	void RenderGrid();
+	void RenderDebug();
 
 	void InitGUI();
 	void RenderGUI();
@@ -81,6 +88,14 @@ private:
 	GLuint vertex_buffer_line_;
 	GLuint color_buffer_line_;
 
+	GLuint vertex_array_id_grid_;
+	GLuint vertex_buffer_grid_;
+	GLuint color_buffer_grid_;
+
+	GLuint vertex_array_id_debug_;
+	GLuint vertex_buffer_debug_;
+	GLuint color_buffer_debug_;
+
 	glm::mat4 projection_text_;
 	unsigned height_ = WINDOW_START_HEIGHT;
 	unsigned width_ = WINDOW_START_WIDTH;
@@ -91,10 +106,13 @@ private:
 
 	Object3D obj_selected_;
 	std::vector<Object3D*> objs_;
+	std::vector<Object3D*> objs_line_;
 
 	TrianglerConfig config_;
 
 	Mesh mesh_grid_;
+	Mesh mesh_debug_;
+
 	std::map<GLchar, Character> chars_;
 
 	Camera camera_ = { {0, 1, 1}, {0, -1, -1}, 45.f, .05f, 100.f };

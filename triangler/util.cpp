@@ -213,6 +213,19 @@ void genIcosphere(Mesh& mesh, int subdivisions)
 	}
 }
 
+void genRing(Object3D* obj, int points, glm::vec4 color)
+{
+	for (int i = 0; i < points; i++)
+	{
+		obj->mesh.AddVert({ std::cosf(2.f * PI * ((float)i / points)), 0.f, std::sinf(2 * PI * ((float)i / points)) });
+		obj->mesh.AddVert({ std::cosf(2.f * PI * (((float)i+1) / points)), 0.f, std::sinf(2 * PI * (((float)i + 1) / points)) });
+
+		obj->mesh.AddColor(color);
+		obj->mesh.AddColor(color);
+	}
+	obj->mesh.radius = 1.f;
+}
+
 void genGrid(Mesh& mesh, const float dim, const int segments, const int subgrids, const glm::vec4 color)
 {
 	float start = -0.5f * dim;
