@@ -150,6 +150,7 @@
     <ClInclude Include="menu.hpp" />
     <ClInclude Include="mesh.hpp" />
     <ClInclude Include="object3d.hpp" />
+    <ClInclude Include="objectfocuser.hpp" />
     <ClInclude Include="ray.hpp" />
     <ClInclude Include="shader.hpp" />
     <ClInclude Include="util.hpp" />

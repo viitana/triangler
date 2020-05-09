@@ -24,6 +24,7 @@
 #include "camera.hpp"
 #include "object3d.hpp"
 #include "menu.hpp"
+#include "objectfocuser.hpp"
 
 #define TRIANGLER_VERSION "0.0.2"
 #define WINDOW_START_WIDTH 1280
@@ -39,19 +40,18 @@ public:
 	void InitDefaultObjs();
 	void InitTestAssets();
 	void InitRenderMain();
-	void InitRenderLines();
 	void InitFont();
+	void InitRenderFocuser();
 	void InitRenderText();
 	void InitRenderGrid();
-	void InitRenderPoint();
+	void InitRenderPoints(Object3D* points);
 	void InitRenderDebug();
 	void InitObject(Object3D* obj);
-	void InitLineObject(Object3D* obj);
+	void InitRenderLineObject(Object3D* obj);
 
 	void Run();
 	void CheckTiming();
 	void WASDMove();
-	void FocusObject(Object3D* obj);
 
 	void HandleCursorMove(double xpos, double ypos);
 	void HandleResize(int height, int width);
@@ -62,7 +62,7 @@ public:
 	void RenderMainLines();
 	void RenderTris(const Object3D* obj);
 	void RenderLines(const Object3D* obj);
-	void RenderPoints();
+	void RenderPoints(Object3D* points);
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderStats();
 	void RenderGrid();
@@ -112,15 +112,11 @@ private:
 	glm::vec3 dir_light_ = { 1.1f, -1.3f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
 
-	Object3D* obj_focused_;
+	TrianglerConfig config_;
+
 	std::vector<Object3D*> objs_;
 	std::vector<Object3D*> objs_line_;
-
-	std::vector<Object3D*> coord_rings_;
-	std::vector<glm::vec3> coord_points_;
-	std::vector<glm::vec4> coord_point_colors_;
-
-	TrianglerConfig config_;
+	ObjectFocuser focuser_;
 
 	Mesh mesh_grid_;
 	Mesh mesh_debug_;

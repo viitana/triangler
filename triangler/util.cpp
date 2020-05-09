@@ -416,5 +416,5 @@ void printVec(glm::vec3 v)
 // Relative to circle middle
 const glm::vec3 ClosestCirlePoint(const glm::vec3 mid, const float r, const glm::vec3 p)
 {
-	return r * glm::normalize(p - mid);
+	return mid + r * glm::normalize(p - mid);
 }

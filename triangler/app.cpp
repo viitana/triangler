@@ -67,14 +67,14 @@ bool App::Initialize()
 
 	glClearColor(0.03f, 0.03f, 0.03f, 0.0f);
 
-	InitDefaultObjs();
+	// InitDefaultObjs();
 	InitTestAssets();
 
 	InitRenderMain();
 	InitFont();
 	InitRenderText();
+	InitRenderFocuser();
 	InitRenderGrid();
-	InitRenderPoint();
 	InitRenderDebug();
 	InitGUI();
 
@@ -93,7 +93,7 @@ void App::Run()
 		// Clear color, depth buffers
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glPointSize(6);
+		glPointSize(10);
 
 		// Aoply render mode
 		if (config_[TRIANGLER_SETTING_ID_WIREFRAME].GetBool())
@@ -115,7 +115,8 @@ void App::Run()
 		if (config_[TRIANGLER_SETTING_ID_DEBUG].GetBool())
 			RenderDebug();
 
-		RenderPoints();
+		//RenderPoints();
+		RenderPoints(focuser_.axis_points_);
 
 		// Debug text render
 		RenderStats();
@@ -135,19 +136,6 @@ void App::Run()
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
-}
-
-void App::FocusObject(Object3D* obj)
-{
-	obj_focused_ = obj;
-	// Move coordinate rings to enclose focused object
-	for (Object3D* r : coord_rings_)
-	{
-		r->ResetTranslation();
-		r->Translate(obj->GetMid());
-		r->ResetScale();
-		r->Scale(obj->mesh.radius);
-	}
 }
 
 void App::CheckTiming() {
@@ -183,9 +171,10 @@ void App::HandleCursorMove(double xpos, double ypos)
 		}
 		if (!selected_obj) return;
 
-		FocusObject(selected_obj);
+		//FocusObject(selected_obj);
+		focuser_.FocusObject(selected_obj);
 
-		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - obj_focused_->GetMid();
+		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - focuser_.focused_obj_->GetMid();
 
 		if (mouse_left_held_)
 		{
@@ -193,16 +182,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 				glm::vec3 grab_current_pos_n = glm::normalize(grab_current_pos);
 				glm::vec3 grab_previous_pos_n = glm::normalize(obj_grab_previous_pos_);
 
-				glm::vec3 grab_current_pos_n_objlocal = obj_focused_->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
-				glm::vec3 grab_previous_pos_n_objlocal = obj_focused_->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
+				glm::vec3 grab_current_pos_n_objlocal = focuser_.focused_obj_->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
+				glm::vec3 grab_previous_pos_n_objlocal = focuser_.focused_obj_->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
 
 				glm::vec3 axis_objlocal = glm::cross(grab_current_pos_n_objlocal, grab_previous_pos_n_objlocal);
-				glm::vec3 axis = obj_focused_->DirectionToGlobal(axis_objlocal);
+				glm::vec3 axis = focuser_.focused_obj_->DirectionToGlobal(axis_objlocal);
 
 				const float phi = acos(glm::dot(grab_current_pos_n, grab_previous_pos_n));
 				const float dot = glm::dot(grab_current_pos_n, grab_previous_pos_n);
 
-				obj_focused_->Rotate(-phi, axis);
+				focuser_.focused_obj_->Rotate(-phi, axis);
 
 				obj_grab_previous_pos_ = grab_current_pos;
 			}
@@ -212,8 +201,8 @@ void App::HandleCursorMove(double xpos, double ypos)
 			if (min_t > 0) {
 				addDebugVector(
 					mesh_debug_,
-					obj_focused_->GetMid(),
-					grab_current_pos + obj_focused_->GetMid(),
+					focuser_.focused_obj_->GetMid(),
+					grab_current_pos + focuser_.focused_obj_->GetMid(),
 					glm::vec4(0, 1, 0, 1)
 				);
 				vert_count_ += 2;
@@ -280,25 +269,12 @@ void App::HandleCursorMove(double xpos, double ypos)
 		mouse_mid_held_ = false;
 	}
 
-	if (obj_focused_)
+	if (focuser_.focused_obj_)
 	{
-		const bool xhit = r.IntersectRing(coord_rings_[0]->GetMid(), { 1, 0, 0 }, obj_focused_->mesh.radius, rt);
-		coord_rings_[0]->line_color = xhit ? glm::vec4(1.f) : glm::vec4(1, 0, 0, 1);
-		coord_points_[0] = coord_rings_[0]->GetMid() + ClosestCirlePoint(coord_rings_[0]->GetMid(), obj_focused_->mesh.radius, r.Origin() + rt * r.Direction());
-		coord_point_colors_[0] =  xhit ? glm::vec4(1, 0, 0, 1) : glm::vec4(0.f);
-
-		const bool yhit = r.IntersectRing(coord_rings_[1]->GetMid(), { 0, 1, 0 }, obj_focused_->mesh.radius, rt);
-		coord_rings_[1]->line_color = yhit ? glm::vec4(1.f) : glm::vec4(0, 1, 0, 1);
-		coord_points_[1] = coord_rings_[1]->GetMid() + ClosestCirlePoint(coord_rings_[1]->GetMid(), obj_focused_->mesh.radius, r.Origin() +  rt * r.Direction());
-		coord_point_colors_[1] = yhit ? glm::vec4(0, 1, 0, 1) : glm::vec4(0.f);
-
-		const bool zhit = r.IntersectRing(coord_rings_[2]->GetMid(), { 0, 0, 1 }, obj_focused_->mesh.radius, rt);
-		coord_rings_[2]->line_color = zhit ? glm::vec4(1.f) : glm::vec4(0, 0, 1, 1);
-		coord_points_[2] = coord_rings_[2]->GetMid() + ClosestCirlePoint(coord_rings_[2]->GetMid(), obj_focused_->mesh.radius, r.Origin() + rt * r.Direction());
-		coord_point_colors_[2] = zhit ? glm::vec4(0, 0, 1, 1) : glm::vec4(0.f);
+		focuser_.UpdateIndicators(r);
+		InitRenderFocuser();
 	}
 	
-
 	cursor_pos_ = pos;
 }
 
@@ -432,7 +408,7 @@ void App::InitObject(Object3D* obj)
 	vert_count_ += obj->mesh.v.size();
 }
 
-void App::InitLineObject(Object3D* obj)
+void App::InitRenderLineObject(Object3D* obj)
 {
 	// VAO
 	glGenVertexArrays(1, &obj->vertex_array_id_);
@@ -478,51 +454,16 @@ void App::InitTestAssets()
 	Object3D* obj4 = new Object3D();
 	genRing(obj4, 128, { 1, 1, 1, 1 });
 	objs_line_.push_back(obj4);
-	InitLineObject(obj4);
+	InitRenderLineObject(obj4);
 	obj4->Translate({ 0.3f, 0, 0 });
 	obj4->Scale(0.1f);
 }
 
-void App::InitDefaultObjs()
-{
-	// Generate coordinate/axis rings that will enclose any selected object
-	Object3D* xring = new Object3D();
-	genRing(xring, 64, {1, 0, 0, 1});
-	xring->Rotate(PI / 2.f, { 0, 0, 1 });
-	xring->line_color = { 1, 0, 0, 1 };
-	objs_line_.push_back(xring);
-	coord_rings_.push_back(xring);
-	InitLineObject(xring);
-
-	Object3D* yring = new Object3D();
-	genRing(yring, 64, { 0, 1, 0, 1 });
-	yring->line_color = { 0, 1, 0, 1 };
-	objs_line_.push_back(yring);
-	coord_rings_.push_back(yring);
-	InitLineObject(yring);
-
-	Object3D* zring = new Object3D();
-	genRing(zring, 64, { 0, 0, 1, 1 });
-	zring->Rotate(PI / 2.f, { 1, 0, 0 });
-	zring->line_color = { 0, 0, 1, 1 };
-	objs_line_.push_back(zring);
-	coord_rings_.push_back(zring);
-	InitLineObject(zring);
-
-	// Add indicator points for each coordinate ring
-	coord_points_.push_back({ 0, 0, 0 });
-	coord_points_.push_back({ 0, 0, 0 });
-	coord_points_.push_back({ 0, 0, 0 });
-
-	coord_point_colors_.push_back({ 1, 0, 0, 1 });
-	coord_point_colors_.push_back({ 0, 1, 0, 1 });
-	coord_point_colors_.push_back({ 0, 0, 1, 1 });
-}
-
 void App::InitRenderMain()
 {
-	// 3D shader program
+	// Shaders
 	program_id_ = LoadShaders("vertex.shader", "fragment.shader");
+	program_id_point_ = LoadShaders("vertex_point.shader", "fragment_point.shader");
 }
 
 // Load up Freetype font glyphs, generate and bind character textures
@@ -643,23 +584,21 @@ void App::InitRenderGrid()
 	glBindVertexArray(0);
 }
 
-void App::InitRenderPoint()
+void App::InitRenderPoints(Object3D* points)
 {
-	program_id_point_ = LoadShaders("vertex_point.shader", "fragment_point.shader");
-
 	// VAO
-	if (!glIsVertexArray(vertex_array_id_point_)) glGenVertexArrays(1, &vertex_array_id_point_);
-	glBindVertexArray(vertex_array_id_point_);
+	if (!glIsVertexArray(points->vertex_array_id_)) glGenVertexArrays(1, &points->vertex_array_id_);
+	glBindVertexArray(points->vertex_array_id_);
 
 	// Setup vertice VBO
-	if (!glIsBuffer(vertex_buffer_point_)) glGenBuffers(1, &vertex_buffer_point_);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_point_);
-	glBufferData(GL_ARRAY_BUFFER, coord_points_.size() * sizeof(coord_points_[0]), coord_points_.data(), GL_STATIC_DRAW);
+	if (!glIsBuffer(points->vertex_buffer_id)) glGenBuffers(1, &points->vertex_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, points->vertex_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, points->mesh.v.size() * sizeof(points->mesh.v[0]), points->mesh.v.data(), GL_STATIC_DRAW);
 
 	// Setup color VBO
-	if (!glIsBuffer(color_buffer_point_)) glGenBuffers(1, &color_buffer_point_);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_point_);
-	glBufferData(GL_ARRAY_BUFFER, coord_point_colors_.size() * sizeof(coord_point_colors_[0]), coord_point_colors_.data(), GL_STATIC_DRAW);
+	if (!glIsBuffer(points->color_buffer_id)) glGenBuffers(1, &points->color_buffer_id);
+	glBindBuffer(GL_ARRAY_BUFFER, points->color_buffer_id);
+	glBufferData(GL_ARRAY_BUFFER, points->mesh.c.size() * sizeof(points->mesh.c[0]), points->mesh.c.data(), GL_STATIC_DRAW);
 
 	// Unbind VAO, VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -687,6 +626,15 @@ void App::InitRenderDebug()
 	glBindVertexArray(0);
 }
 
+void App::InitRenderFocuser()
+{
+	InitRenderPoints(focuser_.axis_points_);
+	for (Object3D*& ring : focuser_.axis_rings_)
+	{
+		InitRenderLineObject(ring);
+	}
+}
+
 void App::RenderMain()
 {
 	for (Object3D* obj : objs_)
@@ -696,6 +644,9 @@ void App::RenderMain()
 void App::RenderMainLines()
 {
 	for (Object3D* obj : objs_line_)
+		RenderLines(obj);
+
+	for (Object3D* obj : focuser_.axis_rings_)
 		RenderLines(obj);
 }
 
@@ -832,23 +783,21 @@ void App::RenderLines(const Object3D* obj)
 	glBindVertexArray(0);
 }
 
-void App::RenderPoints()
+void App::RenderPoints(Object3D* points)
 {
-	InitRenderPoint();
-
 	const glm::mat4 mvp = projection_main_ * view_main_;
 
 	glUseProgram(program_id_point_);
 
-	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
+	GLuint mvpID = glGetUniformLocation(program_id_point_, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
 	// Bind VAO, index
-	glBindVertexArray(vertex_array_id_point_);
+	glBindVertexArray(points->vertex_array_id_);
 
 	// Set up vertex attributes
 	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_point_);
+	glBindBuffer(GL_ARRAY_BUFFER, points->vertex_buffer_id);
 	glVertexAttribPointer(
 		0,                  // attribute pos in shader
 		3,                  // size
@@ -860,7 +809,7 @@ void App::RenderPoints()
 
 	// Set up vertex attributes
 	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_point_);
+	glBindBuffer(GL_ARRAY_BUFFER, points->color_buffer_id);
 	glVertexAttribPointer(
 		1,                  // attribute pos in shader
 		4,                  // size
@@ -871,7 +820,7 @@ void App::RenderPoints()
 	);
 
 	// Draw
-	glDrawArrays(GL_POINTS, 0, coord_points_.size());
+	glDrawArrays(GL_POINTS, 0, points->mesh.v.size());
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
@@ -879,7 +828,6 @@ void App::RenderPoints()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
-
 
 void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
 {

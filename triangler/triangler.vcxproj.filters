@@ -97,5 +97,8 @@
     <ClInclude Include="menu.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="objectfocuser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
