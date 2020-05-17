@@ -23,12 +23,12 @@
 // intersect, genray
 // proper debug ray init
 // camera straight up/down
-// lighting tied to cam dir
 // indexed, nonindexed types to objs (enum?)
 // separate all headers and implementations
 // point draw support
 // unify projection calc for all render steps
 // don't regenerate VAOs on data change/improve init stuff
+// grid draw toggle affects degub line color
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -132,7 +132,7 @@ void App::Run()
 	for (auto obj : objs_)
 		obj->ClearBuffers();
 
-	glDeleteProgram(program_id_);
+	//glDeleteProgram(program_id_);
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
@@ -285,8 +285,8 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 		if (key == GLFW_KEY_ESCAPE)
 			glfwSetWindowShouldClose(window_, GLFW_TRUE);
 		if (key == GLFW_KEY_R) {
-			glDeleteProgram(program_id_);
-			program_id_ = LoadShaders("vertex.shader", "fragment.shader");
+			//glDeleteProgram(program_id_);
+			//program_id_ = LoadShaders("vertex.shader", "fragment.shader");
 			glDeleteProgram(program_id_text_);
 			program_id_text_ = LoadShaders("vertex_text.shader", "fragment_text.shader");
 			glDeleteProgram(program_id_line_);
@@ -433,37 +433,43 @@ void App::InitTestAssets()
 {
 	Object3D* obj1 = new Object3D();
 	LoadOBJf(obj1, "assets/bunny_lores.obj");
-	objs_.push_back(obj1);
 	InitObject(obj1);
 	obj1->Translate({ -0.3f, 0, 0 });
+	objs_.push_back(obj1);
 
 	Object3D* obj2 = new Object3D();
 	loadIcosphere(obj2, 1);
 	obj2->Scale(0.08f);
-	objs_.push_back(obj2);
-	InitObject(obj2);
 	obj2->Translate({ 0, 0, -0.25f });
+	InitObject(obj2);
+	objs_.push_back(obj2);
 
 	Object3D* obj3 = new Object3D();
 	loadIcosphere(obj3, 3);
-	obj3->Scale(0.081f);
-	objs_.push_back(obj3);
 	InitObject(obj3);
+	obj3->Scale(0.081f);
 	obj3->Translate({ 0.3f, 0, 0 });
+	objs_.push_back(obj3);
 
 	Object3D* obj4 = new Object3D();
 	genRing(obj4, 128, { 1, 1, 1, 1 });
-	objs_line_.push_back(obj4);
 	InitRenderLineObject(obj4);
 	obj4->Translate({ 0.3f, 0, 0 });
 	obj4->Scale(0.1f);
+	objs_line_.push_back(obj4);
+
+	//Object3D* grid = new Object3D();
+	//genGrid(grid->mesh, 31.0f, 31, 2, glm::vec4(0.6f, 0.9f, 0.9f, 0.4f));
+	//InitRenderLineObject(grid);
+	//objs_line_.push_back(grid);
 }
 
 void App::InitRenderMain()
 {
 	// Shaders
-	program_id_ = LoadShaders("vertex.shader", "fragment.shader");
-	program_id_point_ = LoadShaders("vertex_point.shader", "fragment_point.shader");
+	shaders_.insert({ "main", new Shader("vertex.shader", "fragment.shader") });
+	shaders_.insert({ "point", new Shader("vertex_point.shader", "fragment_point.shader") });
+
 }
 
 // Load up Freetype font glyphs, generate and bind character textures
@@ -550,7 +556,6 @@ void App::InitRenderText()
 	// Associate vertex buffer to attribute 0
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
-
 	// Unbind VAO, VBO
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -586,6 +591,10 @@ void App::InitRenderGrid()
 
 void App::InitRenderPoints(Object3D* points)
 {
+	// Bind shader
+	const GLuint program_id = shaders_["point"]->id_;
+	glUseProgram(program_id);
+
 	// VAO
 	if (!glIsVertexArray(points->vertex_array_id_)) glGenVertexArrays(1, &points->vertex_array_id_);
 	glBindVertexArray(points->vertex_array_id_);
@@ -663,22 +672,23 @@ void App::RenderTris(const Object3D* obj)
 	const glm::mat4 mvp = projection_main_ * view_main_ * model;
 
 	// Bind shader
-	glUseProgram(program_id_);
+	const GLuint program_id = shaders_["main"]->id_;
+	glUseProgram(program_id);
 
 	// Uniforms
-	GLuint flatID = glGetUniformLocation(program_id_, "flat_shading");
+	GLuint flatID = glGetUniformLocation(program_id, "flat_shading");
 	glUniform1i(flatID, flat);
 
-	GLuint modelID = glGetUniformLocation(program_id_, "model_to_world");
+	GLuint modelID = glGetUniformLocation(program_id, "model_to_world");
 	glUniformMatrix4fv(modelID, 1, GL_FALSE, &model[0][0]);
 
-	GLuint mvpID = glGetUniformLocation(program_id_, "MVP");
+	GLuint mvpID = glGetUniformLocation(program_id, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
-	GLuint camposID = glGetUniformLocation(program_id_, "camera_pos");
+	GLuint camposID = glGetUniformLocation(program_id, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
 
-	GLuint dirlightID = glGetUniformLocation(program_id_, "light_dir");
+	GLuint dirlightID = glGetUniformLocation(program_id, "light_dir");
 	glUniform3fv(dirlightID, 1, (GLfloat*)&dir_light_);
 
 	// Bind VAO, index
@@ -787,9 +797,11 @@ void App::RenderPoints(Object3D* points)
 {
 	const glm::mat4 mvp = projection_main_ * view_main_;
 
-	glUseProgram(program_id_point_);
+	// Bind shader
+	const GLuint program_id = shaders_["point"]->id_;
+	glUseProgram(program_id);
 
-	GLuint mvpID = glGetUniformLocation(program_id_point_, "MVP");
+	GLuint mvpID = glGetUniformLocation(program_id, "MVP");
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
 	// Bind VAO, index

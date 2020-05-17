@@ -81,7 +81,6 @@ struct Object3D
 	}
 
 	// Transform a direction vector to global space
-	// TODO: Apply scale as well
 	const glm::vec3 DirectionToGlobal(const glm::vec3 v) const
 	{
 		return glm::inverse(transform_rotation) * glm::inverse(transform_scale) * glm::vec4(v, 1.f);

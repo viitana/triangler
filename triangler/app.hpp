@@ -73,24 +73,13 @@ public:
 private:
 	GLFWwindow* window_;
 
-	GLuint program_id_;
+	std::map<std::string, Shader*> shaders_;
+
 	GLuint program_id_text_;
 	GLuint program_id_line_;
-	GLuint program_id_point_;
-
-	GLuint vertex_array_id_;
-
-	GLuint vertex_buffer_;
-	GLuint index_buffer_;
-	GLuint color_buffer_;
-	GLuint normal_buffer_;
 
 	GLuint vertex_array_id_text_;
 	GLuint vertex_buffer_text_;
-
-	GLuint vertex_array_id_line_;
-	GLuint vertex_buffer_line_;
-	GLuint color_buffer_line_;
 
 	GLuint vertex_array_id_grid_;
 	GLuint vertex_buffer_grid_;
