@@ -14,6 +14,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/ext.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H  
@@ -25,6 +26,7 @@
 #include "object3d.hpp"
 #include "menu.hpp"
 #include "objectfocuser.hpp"
+#include "ShaderUniform.h"
 
 #define TRIANGLER_VERSION "0.0.2"
 #define WINDOW_START_WIDTH 1280
@@ -39,7 +41,7 @@ public:
 	bool InitGLEW();
 	void InitDefaultObjs();
 	void InitTestAssets();
-	void InitRenderMain();
+	void InitShaders();
 	void InitFont();
 	void InitRenderFocuser();
 	void InitRenderText();
@@ -52,6 +54,9 @@ public:
 	void Run();
 	void CheckTiming();
 	void WASDMove();
+
+	void UpdateGlobalUniforms();
+	void CleanUniforms();
 
 	void HandleCursorMove(double xpos, double ypos);
 	void HandleResize(int height, int width);
@@ -74,6 +79,7 @@ private:
 	GLFWwindow* window_;
 
 	std::map<std::string, Shader*> shaders_;
+	std::map<std::string, ShaderUniformInterface*> uniforms_;
 
 	GLuint program_id_text_;
 	GLuint program_id_line_;

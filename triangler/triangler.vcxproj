@@ -115,6 +115,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,12 +127,14 @@
   <ItemGroup>
     <ClCompile Include="app.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="cleanable.cpp" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="menu.cpp" />
     <ClCompile Include="object3d.cpp" />
     <ClCompile Include="ray.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ShaderUniform.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -146,13 +150,16 @@
   <ItemGroup>
     <ClInclude Include="app.hpp" />
     <ClInclude Include="camera.hpp" />
+    <ClInclude Include="cleanable.hpp" />
     <ClInclude Include="font.hpp" />
     <ClInclude Include="menu.hpp" />
     <ClInclude Include="mesh.hpp" />
+    <ClInclude Include="mutuallyattachable.hpp" />
     <ClInclude Include="object3d.hpp" />
     <ClInclude Include="objectfocuser.hpp" />
     <ClInclude Include="ray.hpp" />
     <ClInclude Include="shader.hpp" />
+    <ClInclude Include="ShaderUniform.h" />
     <ClInclude Include="util.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

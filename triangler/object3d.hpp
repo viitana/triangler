@@ -1,11 +1,17 @@
 #pragma once
 
+#include <map>
+#include <typeindex>
+#include <typeinfo>
+
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include "mesh.hpp"
+
+
 
 struct Object3D
 {
@@ -20,6 +26,8 @@ struct Object3D
 	glm::mat4 transform_rotation = glm::mat4(1.0f);
 	glm::mat4 transform_translation = glm::mat4(1.0f);
 	glm::vec4 line_color = glm::vec4(1.f);
+
+	//std::vector<>
 
 	// Get origin in world-space
 	glm::vec3 GetOrigin() const

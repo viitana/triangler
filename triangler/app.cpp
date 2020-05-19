@@ -29,6 +29,8 @@
 // unify projection calc for all render steps
 // don't regenerate VAOs on data change/improve init stuff
 // grid draw toggle affects degub line color
+// indexed normals
+// notifydirty on uniform creation
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -67,10 +69,9 @@ bool App::Initialize()
 
 	glClearColor(0.03f, 0.03f, 0.03f, 0.0f);
 
-	// InitDefaultObjs();
 	InitTestAssets();
 
-	InitRenderMain();
+	InitShaders();
 	InitFont();
 	InitRenderText();
 	InitRenderFocuser();
@@ -105,6 +106,9 @@ void App::Run()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 
+		UpdateGlobalUniforms();
+		CleanUniforms();
+
 		RenderMain();
 		RenderMainLines();
 
@@ -125,8 +129,8 @@ void App::Run()
 		glfwSwapBuffers(window_);
 		glfwPollEvents();
 
-	} // Check if the ESC key was pressed or the window was closed
-	while (glfwWindowShouldClose(window_) == 0);
+	}
+	while (!glfwWindowShouldClose(window_));
 
 	// Cleanup VBO
 	for (auto obj : objs_)
@@ -464,11 +468,16 @@ void App::InitTestAssets()
 	//objs_line_.push_back(grid);
 }
 
-void App::InitRenderMain()
+void App::InitShaders()
 {
+	uniforms_.insert({ "VP", new ShaderUniform<glm::mat4>("VP", glm::mat4(1.f)) });
+
 	// Shaders
 	shaders_.insert({ "main", new Shader("vertex.shader", "fragment.shader") });
 	shaders_.insert({ "point", new Shader("vertex_point.shader", "fragment_point.shader") });
+
+	shaders_["main"]->Attach(uniforms_["VP"]);
+	shaders_["point"]->Attach(uniforms_["VP"]);
 
 }
 
@@ -669,7 +678,7 @@ void App::RenderTris(const Object3D* obj)
 	const int flat = config_[TRIANGLER_SETTING_ID_FLAT].GetBool() ? 1 : 0;
 
 	// Model-view-projection
-	const glm::mat4 mvp = projection_main_ * view_main_ * model;
+	const glm::mat4 vp = projection_main_ * view_main_;
 
 	// Bind shader
 	const GLuint program_id = shaders_["main"]->id_;
@@ -680,10 +689,10 @@ void App::RenderTris(const Object3D* obj)
 	glUniform1i(flatID, flat);
 
 	GLuint modelID = glGetUniformLocation(program_id, "model_to_world");
-	glUniformMatrix4fv(modelID, 1, GL_FALSE, &model[0][0]);
+	glUniformMatrix4fv(modelID, 1, GL_FALSE, glm::value_ptr(model));
 
-	GLuint mvpID = glGetUniformLocation(program_id, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+	//GLuint mvpID = glGetUniformLocation(program_id, "VP");
+	//glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(vp));
 
 	GLuint camposID = glGetUniformLocation(program_id, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
@@ -759,7 +768,7 @@ void App::RenderLines(const Object3D* obj)
 
 	// Uniforms
 	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
 
 	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
@@ -802,7 +811,7 @@ void App::RenderPoints(Object3D* points)
 	glUseProgram(program_id);
 
 	GLuint mvpID = glGetUniformLocation(program_id, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
 
 	// Bind VAO, index
 	glBindVertexArray(points->vertex_array_id_);
@@ -852,7 +861,7 @@ void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm:
 
 	// Uniforms
 	glUniform3f(glGetUniformLocation(program_id_text_, "textColor"), color.x, color.y, color.z);
-	glUniformMatrix4fv(glGetUniformLocation(program_id_text_, "projection"), 1, GL_FALSE, &projection_text_[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(program_id_text_, "projection"), 1, GL_FALSE, glm::value_ptr(projection_text_));
 
 	// Textures
 	glActiveTexture(GL_TEXTURE0);
@@ -911,7 +920,7 @@ void App::RenderGrid()
 
 	// Uniforms
 	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
 
 	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
@@ -963,7 +972,7 @@ void App::RenderDebug()
 
 	// Uniforms
 	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
 
 	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
 	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
@@ -1039,4 +1048,18 @@ void App::InitGUI()
 void App::RenderGUI()
 {
 	
+}
+
+void App::UpdateGlobalUniforms()
+{
+	// View-projection
+	static_cast<ShaderUniform<glm::mat4>*>(uniforms_["VP"])->SetValue(projection_main_ * view_main_);
+}
+
+void App::CleanUniforms()
+{
+	for (const auto& [name, shader] : shaders_)
+	{
+		shader->CleanObservees();
+	}
 }

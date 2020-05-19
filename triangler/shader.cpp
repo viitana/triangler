@@ -202,3 +202,31 @@ const GLuint Shader::LinkShaders(const GLuint vertex_shader_id, GLuint fragment_
 	}
 	return program_id;
 }
+
+void Shader::NotifyDirty(ShaderUniformInterface* cleanable)
+{
+	uniforms_dirty_.insert(cleanable);
+}
+
+
+void Shader::CleanObservees()
+{
+	glUseProgram(id_);
+	for (CleanableBy<Shader>* uniform : uniforms_dirty_)
+	{
+		uniform->Clean(this);
+	}
+	uniforms_dirty_.clear();
+}
+
+void Shader::AttachNoReciprocation(ShaderUniformInterface* uniform)
+{
+	uniforms_.insert(uniform);
+	uniforms_dirty_.insert(uniform);
+}
+
+void Shader::Attach(ShaderUniformInterface* uniform)
+{
+	AttachNoReciprocation(uniform);
+	uniform->AttachNoReciprocation(this);
+}

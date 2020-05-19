@@ -13,10 +13,10 @@ flat out vec3 normal_ws_f;
 flat out vec3 normal_os_f;
 
 uniform mat4 model_to_world;
-uniform mat4 MVP;
+uniform mat4 VP;
 
 void main() {
-	vec4 pos = MVP * vec4(vertexPosition_modelspace, 1);
+	vec4 pos = VP * model_to_world * vec4(vertexPosition_modelspace, 1);
 	gl_Position = pos;
 
 	fragmentColor = vertexColor;

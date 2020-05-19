@@ -42,6 +42,12 @@
     <ClCompile Include="menu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ShaderUniform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cleanable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vertex.shader">
@@ -98,6 +104,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="objectfocuser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderUniform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cleanable.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mutuallyattachable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
