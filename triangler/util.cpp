@@ -15,42 +15,6 @@
 
 #include "util.hpp"
 
-void genNormals(Mesh& mesh)
-{
-	std::vector<glm::vec3> normals(mesh.v.size());
-
-	for (int i = 0; i < mesh.t.size(); i += 3)
-	{
-		auto v0 = mesh.v[mesh.t[i + 0]];
-		auto v1 = mesh.v[mesh.t[i + 1]];
-		auto v2 = mesh.v[mesh.t[i + 2]];
-
-		auto n = glm::normalize(glm::cross(v1 - v0, v2 - v0));
-		
-		normals[mesh.t[i + 0]] += n;
-		normals[mesh.t[i + 1]] += n;
-		normals[mesh.t[i + 2]] += n;
-	}
-
-	for (auto& normal : normals)
-	{
-		normal = glm::normalize(normal);
-	}
-
-	mesh.n = normals;
-}
-
-void genRandomColors(Mesh& mesh) {
-	for (int i = 0; i < mesh.v.size(); i++) {
-		mesh.AddColor(glm::vec4(
-			(float)rand() / (float)RAND_MAX,
-			(float)rand() / (float)RAND_MAX,
-			(float)rand() / (float)RAND_MAX,
-			1.0f
-		));
-	}
-}
-
 void addDebugVector(Mesh& mesh, const glm::vec3 start, const glm::vec3 end, const glm::vec4 color)
 {
 	mesh.v.insert(mesh.v.begin(), start);

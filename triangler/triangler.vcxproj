@@ -130,6 +130,7 @@
     <ClCompile Include="cleanable.cpp" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="menu.cpp" />
+    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="object3d.cpp" />
     <ClCompile Include="ray.cpp" />
     <ClCompile Include="shader.cpp" />

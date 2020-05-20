@@ -9,8 +9,6 @@
 
 #define PI 3.1415927f
 
-void genNormals(Mesh& mesh);
-void genRandomColors(Mesh& mesh);
 void genIcosahedron(Mesh& mesh);
 void genIcosphere(Mesh& mesh, int subdivisions);
 void genIcosahedron(Mesh& mesh);

@@ -11,7 +11,7 @@
 struct ObjectFocuser
 {
 	// Current object in focus
-	Object3D* focused_obj_;
+	Object3D* focused_obj_ = nullptr;
 
 	std::vector<glm::vec3> standard_base_ = {
 		{1, 0, 0},
@@ -71,17 +71,17 @@ struct ObjectFocuser
 		}
 	}
 
-	ObjectFocuser()
+	ObjectFocuser(Shader* shader_line, Shader* shader_point)
 	{
 		for (unsigned u = 0u; u < 3u; u++)
 		{
-			Object3D* ring = new Object3D();
+			Object3D* ring = new Object3D(shader_line);
 			genRing(ring, 64, axis_colors_[u]); // TODO: remove
 			axis_rings_.push_back(ring);
 			// init?
 		}
 
-		axis_points_ = new Object3D(Mesh{
+		axis_points_ = new Object3D(shader_point, Mesh{
 			{},
 			{{ 0, 0, 0}, { 0, 0, 0 }, { 0, 0, 0 }},
 			{},

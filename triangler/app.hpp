@@ -39,7 +39,7 @@ public:
 	bool Initialize();
 	bool InitGLFW();
 	bool InitGLEW();
-	void InitDefaultObjs();
+	void InitDefaultAssets();
 	void InitTestAssets();
 	void InitShaders();
 	void InitFont();
@@ -50,6 +50,8 @@ public:
 	void InitRenderDebug();
 	void InitObject(Object3D* obj);
 	void InitRenderLineObject(Object3D* obj);
+
+	void RenderObject(const Object3D* obj);
 
 	void Run();
 	void CheckTiming();
@@ -109,9 +111,12 @@ private:
 
 	TrianglerConfig config_;
 
+	std::vector<Object3D*> objects_;
+
 	std::vector<Object3D*> objs_;
 	std::vector<Object3D*> objs_line_;
-	ObjectFocuser focuser_;
+
+	ObjectFocuser* focuser_ = nullptr;
 
 	Mesh mesh_grid_;
 	Mesh mesh_debug_;

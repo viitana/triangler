@@ -69,12 +69,13 @@ bool App::Initialize()
 
 	glClearColor(0.03f, 0.03f, 0.03f, 0.0f);
 
+	InitShaders();
+	InitDefaultAssets();
 	InitTestAssets();
 
-	InitShaders();
 	InitFont();
 	InitRenderText();
-	InitRenderFocuser();
+	InitRenderFocuser(); // TODO: get rid of this
 	InitRenderGrid();
 	InitRenderDebug();
 	InitGUI();
@@ -120,7 +121,7 @@ void App::Run()
 			RenderDebug();
 
 		//RenderPoints();
-		RenderPoints(focuser_.axis_points_);
+		RenderPoints(focuser_->axis_points_);
 
 		// Debug text render
 		RenderStats();
@@ -141,6 +142,77 @@ void App::Run()
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 }
+
+void App::InitShaders()
+{
+	uniforms_.insert({ "VP", new ShaderUniform<glm::mat4>("VP", glm::mat4(1.f)) });
+	uniforms_.insert({ "camera_pos", new ShaderUniform<glm::vec3>("camera_pos", camera_.Position()) });
+	uniforms_.insert({ "light_dir", new ShaderUniform<glm::vec3>("light_dir", dir_light_) });
+	uniforms_.insert({ "flat_shading", new ShaderUniform<int>("flat_shading", config_[TRIANGLER_SETTING_ID_FLAT].GetBool() ? 1 : 0) });
+
+	// Shaders
+	shaders_.insert({ "main", new Shader("vertex.shader", "fragment.shader") });
+	shaders_.insert({ "line", new Shader("vertex_line.shader", "fragment_line.shader") });
+	shaders_.insert({ "point", new Shader("vertex_point.shader", "fragment_point.shader") });
+
+	shaders_["main"]->Attach(uniforms_["VP"]);
+	shaders_["main"]->Attach(uniforms_["camera_pos"]);
+	shaders_["main"]->Attach(uniforms_["light_dir"]);
+	shaders_["main"]->Attach(uniforms_["flat_shading"]);
+
+	shaders_["point"]->Attach(uniforms_["VP"]);
+
+}
+
+void App::InitTestAssets()
+{
+	Object3D* obj1 = new Object3D(shaders_["main"]);
+	LoadOBJf(obj1, "assets/bunny_lores.obj");
+	InitObject(obj1);
+	obj1->Translate({ -0.3f, 0, 0 });
+	objs_.push_back(obj1);
+
+	Object3D* obj2 = new Object3D(shaders_["main"]);
+	loadIcosphere(obj2, 1);
+	obj2->Scale(0.08f);
+	obj2->Translate({ 0, 0, -0.25f });
+	InitObject(obj2);
+	objs_.push_back(obj2);
+
+	Object3D* obj3 = new Object3D(shaders_["main"]);
+	loadIcosphere(obj3, 3);
+	InitObject(obj3);
+	obj3->Scale(0.081f);
+	obj3->Translate({ 0.3f, 0, 0 });
+	objs_.push_back(obj3);
+
+	Object3D* obj4 = new Object3D(shaders_["main"]);
+	genRing(obj4, 128, { 1, 1, 1, 1 });
+	InitRenderLineObject(obj4);
+	obj4->Translate({ 0.3f, 0, 0 });
+	obj4->Scale(0.1f);
+	objs_line_.push_back(obj4);
+
+	Object3D* obj5 = new Object3D(shaders_["main"]);
+	LoadOBJf(obj5, "assets/bunny_lores.obj");
+	obj5->Init();
+	obj5->SetMesh(obj5->mesh);
+
+	//InitializeObject(obj5);
+	obj5->Translate({ 0, 0, 0.25f });
+	objects_.push_back(obj5);
+
+	//Object3D* grid = new Object3D();
+	//genGrid(grid->mesh, 31.0f, 31, 2, glm::vec4(0.6f, 0.9f, 0.9f, 0.4f));
+	//InitRenderLineObject(grid);
+	//objs_line_.push_back(grid);
+}
+
+void App::InitDefaultAssets()
+{
+	focuser_ = new ObjectFocuser(shaders_["line"], shaders_["point"]);
+}
+
 
 void App::CheckTiming() {
 	double time = glfwGetTime();
@@ -164,7 +236,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		float min_t = std::numeric_limits<float>::max();
 		Object3D* selected_obj = NULL;
-		for (auto obj : objs_)
+		for (auto obj : objects_)
 		{
 			bool hit = r.IntersectSphere(obj->GetMid(), obj->mesh.radius, rt);
 			if (hit && rt < min_t)
@@ -176,9 +248,9 @@ void App::HandleCursorMove(double xpos, double ypos)
 		if (!selected_obj) return;
 
 		//FocusObject(selected_obj);
-		focuser_.FocusObject(selected_obj);
+		focuser_->FocusObject(selected_obj);
 
-		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - focuser_.focused_obj_->GetMid();
+		glm::vec3 grab_current_pos = r.Origin() + r.Direction() * min_t - focuser_->focused_obj_->GetMid();
 
 		if (mouse_left_held_)
 		{
@@ -186,16 +258,16 @@ void App::HandleCursorMove(double xpos, double ypos)
 				glm::vec3 grab_current_pos_n = glm::normalize(grab_current_pos);
 				glm::vec3 grab_previous_pos_n = glm::normalize(obj_grab_previous_pos_);
 
-				glm::vec3 grab_current_pos_n_objlocal = focuser_.focused_obj_->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
-				glm::vec3 grab_previous_pos_n_objlocal = focuser_.focused_obj_->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
+				glm::vec3 grab_current_pos_n_objlocal = focuser_->focused_obj_->transform_rotation * glm::vec4(grab_current_pos_n, 1.f);
+				glm::vec3 grab_previous_pos_n_objlocal = focuser_->focused_obj_->transform_rotation * glm::vec4(grab_previous_pos_n, 1.f);
 
 				glm::vec3 axis_objlocal = glm::cross(grab_current_pos_n_objlocal, grab_previous_pos_n_objlocal);
-				glm::vec3 axis = focuser_.focused_obj_->DirectionToGlobal(axis_objlocal);
+				glm::vec3 axis = focuser_->focused_obj_->DirectionToGlobal(axis_objlocal);
 
 				const float phi = acos(glm::dot(grab_current_pos_n, grab_previous_pos_n));
 				const float dot = glm::dot(grab_current_pos_n, grab_previous_pos_n);
 
-				focuser_.focused_obj_->Rotate(-phi, axis);
+				focuser_->focused_obj_->Rotate(-phi, axis);
 
 				obj_grab_previous_pos_ = grab_current_pos;
 			}
@@ -205,8 +277,8 @@ void App::HandleCursorMove(double xpos, double ypos)
 			if (min_t > 0) {
 				addDebugVector(
 					mesh_debug_,
-					focuser_.focused_obj_->GetMid(),
-					grab_current_pos + focuser_.focused_obj_->GetMid(),
+					focuser_->focused_obj_->GetMid(),
+					grab_current_pos + focuser_->focused_obj_->GetMid(),
 					glm::vec4(0, 1, 0, 1)
 				);
 				vert_count_ += 2;
@@ -273,9 +345,9 @@ void App::HandleCursorMove(double xpos, double ypos)
 		mouse_mid_held_ = false;
 	}
 
-	if (focuser_.focused_obj_)
+	if (focuser_->focused_obj_)
 	{
-		focuser_.UpdateIndicators(r);
+		focuser_->UpdateIndicators(r);
 		InitRenderFocuser();
 	}
 	
@@ -431,54 +503,6 @@ void App::InitRenderLineObject(Object3D* obj)
 	// Increment drawing stats
 	obj_count_++;
 	vert_count_ += obj->mesh.v.size();
-}
-
-void App::InitTestAssets()
-{
-	Object3D* obj1 = new Object3D();
-	LoadOBJf(obj1, "assets/bunny_lores.obj");
-	InitObject(obj1);
-	obj1->Translate({ -0.3f, 0, 0 });
-	objs_.push_back(obj1);
-
-	Object3D* obj2 = new Object3D();
-	loadIcosphere(obj2, 1);
-	obj2->Scale(0.08f);
-	obj2->Translate({ 0, 0, -0.25f });
-	InitObject(obj2);
-	objs_.push_back(obj2);
-
-	Object3D* obj3 = new Object3D();
-	loadIcosphere(obj3, 3);
-	InitObject(obj3);
-	obj3->Scale(0.081f);
-	obj3->Translate({ 0.3f, 0, 0 });
-	objs_.push_back(obj3);
-
-	Object3D* obj4 = new Object3D();
-	genRing(obj4, 128, { 1, 1, 1, 1 });
-	InitRenderLineObject(obj4);
-	obj4->Translate({ 0.3f, 0, 0 });
-	obj4->Scale(0.1f);
-	objs_line_.push_back(obj4);
-
-	//Object3D* grid = new Object3D();
-	//genGrid(grid->mesh, 31.0f, 31, 2, glm::vec4(0.6f, 0.9f, 0.9f, 0.4f));
-	//InitRenderLineObject(grid);
-	//objs_line_.push_back(grid);
-}
-
-void App::InitShaders()
-{
-	uniforms_.insert({ "VP", new ShaderUniform<glm::mat4>("VP", glm::mat4(1.f)) });
-
-	// Shaders
-	shaders_.insert({ "main", new Shader("vertex.shader", "fragment.shader") });
-	shaders_.insert({ "point", new Shader("vertex_point.shader", "fragment_point.shader") });
-
-	shaders_["main"]->Attach(uniforms_["VP"]);
-	shaders_["point"]->Attach(uniforms_["VP"]);
-
 }
 
 // Load up Freetype font glyphs, generate and bind character textures
@@ -646,8 +670,8 @@ void App::InitRenderDebug()
 
 void App::InitRenderFocuser()
 {
-	InitRenderPoints(focuser_.axis_points_);
-	for (Object3D*& ring : focuser_.axis_rings_)
+	InitRenderPoints(focuser_->axis_points_);
+	for (Object3D*& ring : focuser_->axis_rings_)
 	{
 		InitRenderLineObject(ring);
 	}
@@ -657,6 +681,9 @@ void App::RenderMain()
 {
 	for (Object3D* obj : objs_)
 		RenderTris(obj);
+
+	for (Object3D* obj : objects_)
+		RenderObject(obj);
 }
 
 void App::RenderMainLines()
@@ -664,8 +691,13 @@ void App::RenderMainLines()
 	for (Object3D* obj : objs_line_)
 		RenderLines(obj);
 
-	for (Object3D* obj : focuser_.axis_rings_)
+	for (Object3D* obj : focuser_->axis_rings_)
 		RenderLines(obj);
+}
+
+void App::RenderObject(const Object3D* obj)
+{
+	obj->Render();
 }
 
 void App::RenderTris(const Object3D* obj)
@@ -1058,8 +1090,9 @@ void App::UpdateGlobalUniforms()
 
 void App::CleanUniforms()
 {
-	for (const auto& [name, shader] : shaders_)
+	for (const auto& pair : shaders_)
 	{
+		Shader* shader = pair.second;
 		shader->CleanObservees();
 	}
 }

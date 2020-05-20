@@ -26,9 +26,10 @@ public:
 	// Inherited: Cleanable
 	virtual void Clean(Shader* shader);
 
+	const std::string name_;
+
 protected:
 	const GLuint GetLocation(const GLuint shader_id) const;
-	const std::string name_;
 	std::set<Shader*> shaders_;
 private:
 	bool changed_ = true;

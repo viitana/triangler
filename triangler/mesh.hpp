@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include <vector>
 
 struct Mesh
@@ -47,3 +49,10 @@ struct Mesh
 	}
 
 };
+
+void genNormals(Mesh& mesh);
+void genRandomColors(Mesh& mesh);
+
+Mesh genIcosahedron();
+Mesh genIcosphere(int subdivisions);
+Mesh genIcosahedron();
