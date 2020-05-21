@@ -3,9 +3,6 @@
 #include <string>
 #include <set>
 
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-
 #include "shader.hpp"
 #include "cleanable.hpp"
 #include "mutuallyattachable.hpp"
@@ -17,6 +14,7 @@ class ShaderUniformInterface : public MutuallyAttachableTo<Shader>, public Clean
 public:
 	ShaderUniformInterface(const std::string name)
 		: name_(name) {}
+
 	virtual void ApplyTo(const GLuint shader_id) const = 0;
 
 	// Inherited: MutuallyAttachable

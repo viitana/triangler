@@ -51,7 +51,7 @@ public:
 	void InitObject(Object3D* obj);
 	void InitRenderLineObject(Object3D* obj);
 
-	void RenderObject(const Object3D* obj);
+	void RenderObject(Object3D* obj);
 
 	void Run();
 	void CheckTiming();

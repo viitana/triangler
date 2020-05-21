@@ -137,6 +137,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ShaderUniform.cpp" />
     <ClCompile Include="util.cpp" />
+    <ClCompile Include="vertexattribute.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment.shader" />
@@ -162,6 +163,7 @@
     <ClInclude Include="shader.hpp" />
     <ClInclude Include="ShaderUniform.h" />
     <ClInclude Include="util.hpp" />
+    <ClInclude Include="vertexattribute.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

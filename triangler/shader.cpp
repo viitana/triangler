@@ -222,7 +222,7 @@ void Shader::CleanObservees()
 void Shader::AttachNoReciprocation(ShaderUniformInterface* uniform)
 {
 	uniforms_.insert(uniform);
-	uniforms_dirty_.insert(uniform);
+	NotifyDirty(uniform);
 }
 
 void Shader::Attach(ShaderUniformInterface* uniform)

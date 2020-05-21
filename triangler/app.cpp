@@ -31,6 +31,9 @@
 // grid draw toggle affects degub line color
 // indexed normals
 // notifydirty on uniform creation
+// rm unneeded attach method repetition; remove pure virtual (unless we want different containers in future?)
+// rm uniforms applyto, implement directly in clean()
+// add override flags
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -134,8 +137,8 @@ void App::Run()
 	while (!glfwWindowShouldClose(window_));
 
 	// Cleanup VBO
-	for (auto obj : objs_)
-		obj->ClearBuffers();
+	//for (auto obj : objs_)
+	//	obj->ClearBuffers();
 
 	//glDeleteProgram(program_id_);
 
@@ -173,7 +176,7 @@ void App::InitTestAssets()
 	objs_.push_back(obj1);
 
 	Object3D* obj2 = new Object3D(shaders_["main"]);
-	loadIcosphere(obj2, 1);
+	loadIcosphere(obj2, 0);
 	obj2->Scale(0.08f);
 	obj2->Translate({ 0, 0, -0.25f });
 	InitObject(obj2);
@@ -197,8 +200,6 @@ void App::InitTestAssets()
 	LoadOBJf(obj5, "assets/bunny_lores.obj");
 	obj5->Init();
 	obj5->SetMesh(obj5->mesh);
-
-	//InitializeObject(obj5);
 	obj5->Translate({ 0, 0, 0.25f });
 	objects_.push_back(obj5);
 
@@ -236,7 +237,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		float min_t = std::numeric_limits<float>::max();
 		Object3D* selected_obj = NULL;
-		for (auto obj : objects_)
+		for (auto obj : objs_)
 		{
 			bool hit = r.IntersectSphere(obj->GetMid(), obj->mesh.radius, rt);
 			if (hit && rt < min_t)
@@ -695,7 +696,7 @@ void App::RenderMainLines()
 		RenderLines(obj);
 }
 
-void App::RenderObject(const Object3D* obj)
+void App::RenderObject(Object3D* obj)
 {
 	obj->Render();
 }
