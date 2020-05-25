@@ -14,8 +14,16 @@ void Object3D::Init()
 
 void Object3D::Draw() const
 {
-	if (isIndexed()) glDrawArrays(GL_TRIANGLES, 0, mesh.v.size());
-	else glDrawElements(GL_TRIANGLES, mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
+	GLenum primitive_mode;
+	switch (type_)
+	{
+		case ObjectType::Mesh: primitive_mode = GL_TRIANGLES; break;
+		case ObjectType::Line: primitive_mode = GL_LINES; break;
+		case ObjectType::Point: primitive_mode = GL_POINTS; break;
+	}
+
+	if (isIndexed()) glDrawArrays(primitive_mode, 0, mesh.v.size());
+	else glDrawElements(primitive_mode, mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
 }
 
 void Object3D::Render()
@@ -46,7 +54,11 @@ void Object3D::BindData(GLenum target, GLenum buffer, GLsizeiptr size, const voi
 
 void Object3D::AttachNoReciprocation(VertexAttributeInterface* vertex_attribute)
 {
-	vertex_attributes_.insert(vertex_attribute);
+	// Generate buffers for attributes on attach
+	BindObject();
+	GenBuffer(&vertex_attribute->buffer_id_);
+
+	vertex_attributes_.insert({ vertex_attribute->name_, vertex_attribute });
 	NotifyDirty(vertex_attribute);
 }
 
@@ -54,6 +66,11 @@ void Object3D::Attach(VertexAttributeInterface* vertex_attribute)
 {
 	AttachNoReciprocation(vertex_attribute);
 	vertex_attribute->AttachNoReciprocation(this);
+}
+
+VertexAttributeInterface* Object3D::GetVertexAttribute(const std::string name)
+{
+	return vertex_attributes_[name];
 }
 
 void Object3D::NotifyDirty(VertexAttributeInterface* vertex_attribute)
@@ -80,52 +97,39 @@ void Object3D::SetMesh(Mesh m)
 
 	// Vertex pos
 	{
-		GenBuffer(&vertex_buffer_id);
-		BindData(GL_ARRAY_BUFFER, vertex_buffer_id, mesh.v.size() * sizeof(mesh.v[0]), mesh.v.data());
-		glEnableVertexAttribArray(VERTEX_POS_ATTRIB_LOCATION);
-		glVertexAttribPointer(
-			VERTEX_POS_ATTRIB_LOCATION,
-			3, // size
-			GL_FLOAT, // type
-			GL_FALSE, // normalized
-			0, // stride
-			(void*)0 // offset
+		VertexAttribute<glm::vec3>* vertex_positions = new VertexAttribute<glm::vec3>(
+			VERTEX_ATTRIB_NAME_POSITION,
+			VERTEX_ATTRIB_LOCATION_POSITION,
+			mesh.v
 		);
+		Attach(vertex_positions);
 	}
 
 	// Vertex colors
 	{
 		if (mesh.c.empty()) genRandomColors(mesh);
-		GenBuffer(&color_buffer_id);
-		BindData(GL_ARRAY_BUFFER, color_buffer_id, mesh.c.size() * sizeof(mesh.c[0]), mesh.c.data());
-		glEnableVertexAttribArray(VERTEX_COLOR_ATTRIB_LOCATION);
-		glVertexAttribPointer(
-			VERTEX_COLOR_ATTRIB_LOCATION,
-			4, // size
-			GL_FLOAT, // type
-			GL_FALSE, // normalized
-			0, // stride
-			(void*)0 // offset
+		VertexAttribute<glm::vec4>* vertex_colors = new VertexAttribute<glm::vec4>(
+			VERTEX_ATTRIB_NAME_COLOR,
+			VERTEX_ATTRIB_LOCATION_COLOR,
+			mesh.c
 		);
+		Attach(vertex_colors);
 	}
 
 	// Vertex normals
+	if (type_ == ObjectType::Mesh)
 	{
 		if (mesh.n.empty()) genNormals(mesh);
-		GenBuffer(&normal_buffer_id);
-		BindData(GL_ARRAY_BUFFER, normal_buffer_id, mesh.n.size() * sizeof(mesh.n[0]), mesh.n.data());
-		glEnableVertexAttribArray(VERTEX_NORMAL_ATTRIB_LOCATION);
-		glVertexAttribPointer(
-			VERTEX_NORMAL_ATTRIB_LOCATION,
-			3, // size
-			GL_FLOAT, // type
-			GL_FALSE, // normalized
-			0, // stride
-			(void*)0 // offset
+		VertexAttribute<glm::vec3>* vertex_normals = new VertexAttribute<glm::vec3>(
+			VERTEX_ATTRIB_NAME_NORMAL,
+			VERTEX_ATTRIB_LOCATION_NORMAL,
+			mesh.n
 		);
+		Attach(vertex_normals);
 	}
 
-	if (!mesh.t.empty()) // Vertex indexing
+	// Vertex indexing
+	if (!mesh.t.empty())
 	{
 		GenBuffer(&index_buffer_id);
 		BindData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_id, mesh.t.size() * sizeof(mesh.t[0]), mesh.t.data());
@@ -144,7 +148,7 @@ glm::vec3 Object3D::GetOrigin() const
 }
 
 const glm::vec3 Object3D::GetMid() const
-{
+{	
 	return GetTransform() * glm::vec4(mesh.mid, 1);
 }
 

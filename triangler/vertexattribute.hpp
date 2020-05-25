@@ -23,9 +23,10 @@ public:
 	virtual void Clean(Object3D* object) = 0;
 
 	const std::string name_;
+	GLuint buffer_id_ = -1;
+
 protected:
 	std::set<Object3D*> objects_;
-	GLuint buffer_id_;
 	const GLuint location_;
 
 	virtual const GLint GetAttributeSize() const = 0;
@@ -41,8 +42,8 @@ template <typename T>
 class VertexAttribute : public VertexAttributeInterface
 {
 public:
-	VertexAttribute(const std::string name, const std::vector<T> data)
-		: VertexAttributeInterface(name), data_(data) {}
+	VertexAttribute(const std::string name, const GLuint location, const std::vector<T> data)
+		: VertexAttributeInterface(name, location), data_(data) {}
 
 	void SetData(const std::vector<T> data)
 	{

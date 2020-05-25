@@ -5,10 +5,11 @@ layout(location = 1) in vec4 vertexColor;
 
 flat out vec4 fragmentColor;
 
-uniform mat4 MVP;
+uniform mat4 model_to_world;
+uniform mat4 VP;
 
 void main() {
-	vec4 pos = MVP * vec4(vertexPosition_world, 1);
+	vec4 pos = VP * model_to_world * vec4(vertexPosition_world, 1);
 	gl_Position = pos;
 
 	fragmentColor = vertexColor;

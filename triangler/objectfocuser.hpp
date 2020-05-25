@@ -8,6 +8,8 @@
 #include "util.hpp"
 #include "mesh.hpp"
 
+#define RING_SEGMENT_COUNT 64
+
 struct ObjectFocuser
 {
 	// Current object in focus
@@ -24,12 +26,13 @@ struct ObjectFocuser
 	Object3D* axis_points_;
 
 	// Default colors
-	std::vector<glm::vec4> axis_colors_ = {
-		{1, 0, 0, 1},
-		{0, 1, 0, 1},
-		{0, 0, 1, 1},
+	std::vector<std::vector<glm::vec4>> axis_colors_ = {
+		std::vector<glm::vec4>(RING_SEGMENT_COUNT * 2, {1, 0, 0, 1}),
+		std::vector<glm::vec4>(RING_SEGMENT_COUNT * 2, {0, 1, 0, 1}),
+		std::vector<glm::vec4>(RING_SEGMENT_COUNT * 2, {0, 0, 1, 1}),
 	};
-	glm::vec4 axis_ring_highlight_color_ = { 1, 1, 1, 1 };
+	std::vector<glm::vec4> axis_ring_highlight_color_
+		= std::vector<glm::vec4>(RING_SEGMENT_COUNT * 2, { 1, 1, 1, 1 });
 
 	void FocusObject(Object3D* obj)
 	{
@@ -44,49 +47,60 @@ struct ObjectFocuser
 		focused_obj_ = obj;
 	}
 
-	void UpdateRing(Ray r, const unsigned n)
+	void UpdateIndicators(Ray r)
 	{
-		float rt;
-		const bool hit = r.IntersectRing(
-			axis_rings_[n]->GetMid(),
-			standard_base_[n],
-			focused_obj_->mesh.radius,
-			rt
-		);
+		Mesh pmesh;
 
-		axis_rings_[n]->line_color = hit ? axis_ring_highlight_color_ : axis_colors_[n];
-		axis_points_->mesh.v[n] = ClosestCirlePoint(
-			axis_rings_[n]->GetMid(),
-			focused_obj_->mesh.radius,
-			r.Origin() + rt * r.Direction()
-		);
-		axis_points_->mesh.c[n] = hit ? axis_colors_[n] : glm::vec4(0.f);
-	}
-
-	void UpdateIndicators(const Ray r)
-	{
-		for (unsigned u = 0; u < axis_rings_.size(); u++)
+		for (unsigned ring = 0; ring < axis_rings_.size(); ring++)
 		{
-			UpdateRing(r, u);
+			float rt;
+			const bool hit = r.IntersectRing(
+				axis_rings_[ring]->GetMid(),
+				standard_base_[ring],
+				focused_obj_->mesh.radius,
+				rt
+			);
+
+			static_cast<VertexAttribute<glm::vec4>*>(
+				axis_rings_[ring]->GetVertexAttribute(VERTEX_ATTRIB_NAME_COLOR))
+				->SetData(hit ? axis_ring_highlight_color_ : axis_colors_[ring]);
+
+			pmesh.AddVert(ClosestCirlePoint(
+				axis_rings_[ring]->GetMid(),
+				focused_obj_->mesh.radius,
+				r.Origin() + rt * r.Direction()
+			));
+			pmesh.AddColor(hit ? axis_colors_[ring][0] : glm::vec4(0.f));
 		}
+
+		static_cast<VertexAttribute<glm::vec3>*>(
+			axis_points_->GetVertexAttribute(VERTEX_ATTRIB_NAME_POSITION))
+			->SetData(pmesh.v);
+
+		static_cast<VertexAttribute<glm::vec4>*>(
+			axis_points_->GetVertexAttribute(VERTEX_ATTRIB_NAME_COLOR))
+			->SetData(pmesh.c);
+
 	}
 
 	ObjectFocuser(Shader* shader_line, Shader* shader_point)
 	{
 		for (unsigned u = 0u; u < 3u; u++)
 		{
-			Object3D* ring = new Object3D(shader_line);
-			genRing(ring, 64, axis_colors_[u]); // TODO: remove
+			Object3D* ring = new Object3D(ObjectType::Line, shader_line);
+			ring->Init();
+			ring->SetMesh(genRing(RING_SEGMENT_COUNT, axis_colors_[u][0]));
 			axis_rings_.push_back(ring);
-			// init?
 		}
 
-		axis_points_ = new Object3D(shader_point, Mesh{
+		axis_points_ = new Object3D(ObjectType::Point, shader_point);
+		axis_points_->Init();
+		axis_points_->SetMesh(Mesh{
 			{},
 			{{ 0, 0, 0}, { 0, 0, 0 }, { 0, 0, 0 }},
 			{},
 			{{ 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }},
-		});
+			});
 
 		// Rotate x, z axis rings to correct orientations
 		axis_rings_[0]->Rotate(PI / 2.f, { 0, 0, 1 });

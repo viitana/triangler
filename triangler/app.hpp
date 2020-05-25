@@ -28,7 +28,7 @@
 #include "objectfocuser.hpp"
 #include "ShaderUniform.h"
 
-#define TRIANGLER_VERSION "0.0.2"
+#define TRIANGLER_VERSION "0.0.3"
 #define WINDOW_START_WIDTH 1280
 #define WINDOW_START_HEIGHT 720
 
@@ -42,16 +42,11 @@ public:
 	void InitDefaultAssets();
 	void InitTestAssets();
 	void InitShaders();
-	void InitFont();
-	void InitRenderFocuser();
-	void InitRenderText();
-	void InitRenderGrid();
-	void InitRenderPoints(Object3D* points);
-	void InitRenderDebug();
-	void InitObject(Object3D* obj);
-	void InitRenderLineObject(Object3D* obj);
 
-	void RenderObject(Object3D* obj);
+	void InitFont();
+	void InitRenderText();
+
+	void AddDebugVector(const glm::vec3 start, const glm::vec3 end, const glm::vec4 color);
 
 	void Run();
 	void CheckTiming();
@@ -66,17 +61,9 @@ public:
 	void HandleKey(int key, int scancode, int action, int mods);
 
 	void RenderMain();
-	void RenderMainLines();
-	void RenderTris(const Object3D* obj);
-	void RenderLines(const Object3D* obj);
-	void RenderPoints(Object3D* points);
 	void RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 	void RenderStats();
-	void RenderGrid();
-	void RenderDebug();
 
-	void InitGUI();
-	void RenderGUI();
 private:
 	GLFWwindow* window_;
 
@@ -84,22 +71,8 @@ private:
 	std::map<std::string, ShaderUniformInterface*> uniforms_;
 
 	GLuint program_id_text_;
-	GLuint program_id_line_;
-
 	GLuint vertex_array_id_text_;
 	GLuint vertex_buffer_text_;
-
-	GLuint vertex_array_id_grid_;
-	GLuint vertex_buffer_grid_;
-	GLuint color_buffer_grid_;
-
-	GLuint vertex_array_id_point_;
-	GLuint vertex_buffer_point_;
-	GLuint color_buffer_point_;
-
-	GLuint vertex_array_id_debug_;
-	GLuint vertex_buffer_debug_;
-	GLuint color_buffer_debug_;
 
 	glm::mat4 projection_text_;
 	unsigned height_ = WINDOW_START_HEIGHT;
@@ -108,18 +81,14 @@ private:
 	glm::mat4 view_main_;
 	glm::vec3 dir_light_ = { 1.1f, -1.3f, -4.f };
 	glm::vec2 cursor_pos_ = { -1, -1 };
+	bool draw_debug_;
 
 	TrianglerConfig config_;
 
 	std::vector<Object3D*> objects_;
 
-	std::vector<Object3D*> objs_;
-	std::vector<Object3D*> objs_line_;
-
+	Object3D* grid_ = nullptr;
 	ObjectFocuser* focuser_ = nullptr;
-
-	Mesh mesh_grid_;
-	Mesh mesh_debug_;
 
 	std::map<GLchar, Character> chars_;
 
@@ -143,8 +112,4 @@ private:
 	unsigned long vert_count_ = 0u;
 	unsigned long obj_count_ = 0u;
 
-	// Camera/perspective properties
-	glm::vec3 u_;
-	glm::vec3 v_;
-	glm::vec3 w_;
 };

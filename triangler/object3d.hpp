@@ -1,7 +1,7 @@
 #pragma once
 
 #include <set>
-#include <map>
+#include <unordered_map> 
 
 #include <glm/glm.hpp>
 
@@ -12,18 +12,27 @@
 #include "shader.hpp"
 #include "vertexattribute.hpp"
 
-#define VERTEX_POS_ATTRIB_LOCATION 0
-#define VERTEX_COLOR_ATTRIB_LOCATION 1
-#define VERTEX_NORMAL_ATTRIB_LOCATION 2
+enum class ObjectType {
+	Mesh,
+	Line,
+	Point
+};
+
+#define VERTEX_ATTRIB_NAME_POSITION "vertex_position_modelspace"
+#define VERTEX_ATTRIB_NAME_COLOR "vertex_color"
+#define VERTEX_ATTRIB_NAME_NORMAL "vertex_normal"
+
+#define VERTEX_ATTRIB_LOCATION_POSITION 0
+#define VERTEX_ATTRIB_LOCATION_COLOR 1
+#define VERTEX_ATTRIB_LOCATION_NORMAL 2
 
 class VertexAttributeInterface;
 
 class Object3D : public CleanableObserverOf<VertexAttributeInterface>, public MutuallyAttachableTo<VertexAttributeInterface>
 {
 public:
-	//Object3D() {}
-	Object3D(Shader* shader) : shader_(shader) {}
-	Object3D(Shader* shader, Mesh m) : shader_(shader), mesh(m) {}
+	Object3D(ObjectType type, Shader* shader) : type_(type), shader_(shader) {}
+	Object3D(ObjectType type, Shader* shader, Mesh m) : type_(type), shader_(shader), mesh(m) {}
 
 	GLuint vertex_array_id_ = -1;
 
@@ -42,7 +51,7 @@ public:
 	Mesh mesh;
 
 	Shader* shader_ = nullptr;
-	std::map<std::string, ShaderUniformInterface*> uniforms_ = {
+	std::unordered_map<std::string, ShaderUniformInterface*> uniforms_ = {
 		{ "model_to_world", new ShaderUniform<glm::mat4>("model_to_world", glm::mat4(1.0f)) },
 	};
 
@@ -86,11 +95,16 @@ public:
 	void AttachNoReciprocation(VertexAttributeInterface* vertex_attribute);
 	void Attach(VertexAttributeInterface* vertex_attribute);
 
-private:
-	std::set<VertexAttributeInterface*> vertex_attributes_;
-	std::set<VertexAttributeInterface*> vertex_attributes_dirty_;
+	VertexAttributeInterface* GetVertexAttribute(const std::string name);
 
+	bool debug_ = false;
+
+private:
+	const ObjectType type_;
 	const GLenum draw_mode_ = GL_STATIC_DRAW;
+
+	std::unordered_map<std::string, VertexAttributeInterface*> vertex_attributes_;
+	std::set<VertexAttributeInterface*> vertex_attributes_dirty_;
 
 	// Submit draw call
 	void Draw() const;

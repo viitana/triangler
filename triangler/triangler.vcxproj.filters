@@ -68,16 +68,16 @@
     <None Include="fragment_text.shader">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="fragment_line.shader">
+    <None Include="fragment_point.shader">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="vertex_point.shader">
       <Filter>Source Files</Filter>
     </None>
     <None Include="vertex_line.shader">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="fragment_point.shader">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="vertex_point.shader">
+    <None Include="fragment_line.shader">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

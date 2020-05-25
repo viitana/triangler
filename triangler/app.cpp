@@ -34,6 +34,7 @@
 // rm unneeded attach method repetition; remove pure virtual (unless we want different containers in future?)
 // rm uniforms applyto, implement directly in clean()
 // add override flags
+// don't change actual mesh radius on object scale
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -68,9 +69,10 @@ bool App::Initialize()
 	glShadeModel(GL_FLAT);
 
 	glEnable(GL_BLEND);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor(0.03f, 0.03f, 0.03f, 0.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
 
 	InitShaders();
 	InitDefaultAssets();
@@ -78,10 +80,6 @@ bool App::Initialize()
 
 	InitFont();
 	InitRenderText();
-	InitRenderFocuser(); // TODO: get rid of this
-	InitRenderGrid();
-	InitRenderDebug();
-	InitGUI();
 
 	return true;
 }
@@ -114,17 +112,6 @@ void App::Run()
 		CleanUniforms();
 
 		RenderMain();
-		RenderMainLines();
-
-		// Grid render
-		if (config_[TRIANGLER_SETTING_ID_GRID_DRAW].GetBool())
-			RenderGrid();
-
-		if (config_[TRIANGLER_SETTING_ID_DEBUG].GetBool())
-			RenderDebug();
-
-		//RenderPoints();
-		RenderPoints(focuser_->axis_points_);
 
 		// Debug text render
 		RenderStats();
@@ -149,6 +136,7 @@ void App::Run()
 void App::InitShaders()
 {
 	uniforms_.insert({ "VP", new ShaderUniform<glm::mat4>("VP", glm::mat4(1.f)) });
+	uniforms_.insert({ "projection_text", new ShaderUniform<glm::mat4>("projection_text", glm::mat4(1.f)) });
 	uniforms_.insert({ "camera_pos", new ShaderUniform<glm::vec3>("camera_pos", camera_.Position()) });
 	uniforms_.insert({ "light_dir", new ShaderUniform<glm::vec3>("light_dir", dir_light_) });
 	uniforms_.insert({ "flat_shading", new ShaderUniform<int>("flat_shading", config_[TRIANGLER_SETTING_ID_FLAT].GetBool() ? 1 : 0) });
@@ -157,63 +145,81 @@ void App::InitShaders()
 	shaders_.insert({ "main", new Shader("vertex.shader", "fragment.shader") });
 	shaders_.insert({ "line", new Shader("vertex_line.shader", "fragment_line.shader") });
 	shaders_.insert({ "point", new Shader("vertex_point.shader", "fragment_point.shader") });
+	shaders_.insert({ "text", new Shader("vertex_text.shader", "fragment_text.shader") });
 
 	shaders_["main"]->Attach(uniforms_["VP"]);
 	shaders_["main"]->Attach(uniforms_["camera_pos"]);
 	shaders_["main"]->Attach(uniforms_["light_dir"]);
 	shaders_["main"]->Attach(uniforms_["flat_shading"]);
 
+	shaders_["line"]->Attach(uniforms_["VP"]);
+	shaders_["line"]->Attach(uniforms_["camera_pos"]);
+
 	shaders_["point"]->Attach(uniforms_["VP"]);
 
+	shaders_["text"]->Attach(uniforms_["projection_text"]);
 }
 
 void App::InitTestAssets()
 {
-	Object3D* obj1 = new Object3D(shaders_["main"]);
-	LoadOBJf(obj1, "assets/bunny_lores.obj");
-	InitObject(obj1);
+	Object3D* obj1 = new Object3D(ObjectType::Mesh, shaders_["main"]);
+	obj1->Init();
+	obj1->SetMesh(LoadOBJ("assets/bunny_lores.obj"));
+	//LoadOBJf(obj1, "assets/bunny_lores.obj");
+	//InitObject(obj1);
 	obj1->Translate({ -0.3f, 0, 0 });
-	objs_.push_back(obj1);
+	objects_.push_back(obj1);
 
-	Object3D* obj2 = new Object3D(shaders_["main"]);
-	loadIcosphere(obj2, 0);
+	Object3D* obj2 = new Object3D(ObjectType::Mesh, shaders_["main"]);
+	obj2->Init();
+	obj2->SetMesh(genIcosphere(0));
+	//loadIcosphere(obj2, 0);
 	obj2->Scale(0.08f);
 	obj2->Translate({ 0, 0, -0.25f });
-	InitObject(obj2);
-	objs_.push_back(obj2);
+	objects_.push_back(obj2);
 
-	Object3D* obj3 = new Object3D(shaders_["main"]);
-	loadIcosphere(obj3, 3);
-	InitObject(obj3);
+	Object3D* obj3 = new Object3D(ObjectType::Mesh, shaders_["main"]);
+	obj3->Init();
+	obj3->SetMesh(genIcosphere(3));
+	//loadIcosphere(obj3, 3);
+	//InitObject(obj3);
 	obj3->Scale(0.081f);
 	obj3->Translate({ 0.3f, 0, 0 });
-	objs_.push_back(obj3);
+	objects_.push_back(obj3);
 
-	Object3D* obj4 = new Object3D(shaders_["main"]);
-	genRing(obj4, 128, { 1, 1, 1, 1 });
-	InitRenderLineObject(obj4);
+	Object3D* obj4 = new Object3D(ObjectType::Line, shaders_["line"]);
+	obj4->Init();
+	obj4->SetMesh(genRing(128, { 0, 1, 1, 1 }));
 	obj4->Translate({ 0.3f, 0, 0 });
 	obj4->Scale(0.1f);
-	objs_line_.push_back(obj4);
+	objects_.push_back(obj4);
 
-	Object3D* obj5 = new Object3D(shaders_["main"]);
-	LoadOBJf(obj5, "assets/bunny_lores.obj");
+	Object3D* obj5 = new Object3D(ObjectType::Mesh, shaders_["main"]);
 	obj5->Init();
-	obj5->SetMesh(obj5->mesh);
+	obj5->SetMesh(LoadOBJ("assets/bunny_lores.obj"));
 	obj5->Translate({ 0, 0, 0.25f });
 	objects_.push_back(obj5);
 
-	//Object3D* grid = new Object3D();
-	//genGrid(grid->mesh, 31.0f, 31, 2, glm::vec4(0.6f, 0.9f, 0.9f, 0.4f));
-	//InitRenderLineObject(grid);
-	//objs_line_.push_back(grid);
 }
 
 void App::InitDefaultAssets()
 {
+	grid_ = new Object3D(ObjectType::Line, shaders_["line"]);
+	grid_->Init();
+	grid_->SetMesh(genGrid(31.0f, 31, 2, glm::vec4(0.6f, 0.9f, 0.9f, 0.4f)));
+
 	focuser_ = new ObjectFocuser(shaders_["line"], shaders_["point"]);
 }
 
+void App::AddDebugVector(const glm::vec3 start, const glm::vec3 end, const glm::vec4 color)
+{
+	Object3D* obj = new Object3D(ObjectType::Line, shaders_["line"]);
+	obj->Init();
+	obj->SetMesh(genVector(start, end, color));
+	obj->debug_ = true;
+	objects_.push_back(obj);
+	vert_count_ += 2;
+}
 
 void App::CheckTiming() {
 	double time = glfwGetTime();
@@ -237,7 +243,7 @@ void App::HandleCursorMove(double xpos, double ypos)
 	{
 		float min_t = std::numeric_limits<float>::max();
 		Object3D* selected_obj = NULL;
-		for (auto obj : objs_)
+		for (auto obj : objects_)
 		{
 			bool hit = r.IntersectSphere(obj->GetMid(), obj->mesh.radius, rt);
 			if (hit && rt < min_t)
@@ -276,14 +282,11 @@ void App::HandleCursorMove(double xpos, double ypos)
 		else
 		{
 			if (min_t > 0) {
-				addDebugVector(
-					mesh_debug_,
+				AddDebugVector(
 					focuser_->focused_obj_->GetMid(),
 					grab_current_pos + focuser_->focused_obj_->GetMid(),
 					glm::vec4(0, 1, 0, 1)
 				);
-				vert_count_ += 2;
-				InitRenderDebug();
 
 				obj_grab_previous_pos_ = grab_current_pos;
 				mouse_left_held_ = true;
@@ -320,13 +323,11 @@ void App::HandleCursorMove(double xpos, double ypos)
 			}
 			else
 			{
-				addDebugVector(
-					mesh_debug_,
+				AddDebugVector(
 					camera_.Position(),
 					camera_.Position() + rt * r.Direction(),
-					glm::vec4(0, 1, 0, 1)
+					glm::vec4(1, 0, 0, 1)
 				);
-				InitRenderDebug();
 
 				glm::vec3 heldpos = camera_.Position() + r.Direction() * rt;
 
@@ -349,7 +350,6 @@ void App::HandleCursorMove(double xpos, double ypos)
 	if (focuser_->focused_obj_)
 	{
 		focuser_->UpdateIndicators(r);
-		InitRenderFocuser();
 	}
 	
 	cursor_pos_ = pos;
@@ -361,14 +361,9 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE)
 			glfwSetWindowShouldClose(window_, GLFW_TRUE);
-		if (key == GLFW_KEY_R) {
-			//glDeleteProgram(program_id_);
-			//program_id_ = LoadShaders("vertex.shader", "fragment.shader");
-			glDeleteProgram(program_id_text_);
-			program_id_text_ = LoadShaders("vertex_text.shader", "fragment_text.shader");
-			glDeleteProgram(program_id_line_);
-			program_id_line_ = LoadShaders("vertex_line.shader", "fragment_line.shader");
-		}
+		//if (key == GLFW_KEY_R) {
+		//	
+		//}
 		config_.Input(key);
 	}
 }
@@ -444,68 +439,6 @@ bool App::InitGLEW()
 	return true;
 }
 
-// Load object mesh, generate normals and colors,
-// bind data to render buffers
-void App::InitObject(Object3D* obj)
-{
-	// VAO
-	glGenVertexArrays(1, &obj->vertex_array_id_);
-	glBindVertexArray(obj->vertex_array_id_);
-
-	// Mesh VBO
-	glGenBuffers(1, &obj->vertex_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, obj->mesh.v.size() * sizeof(obj->mesh.v[0]), obj->mesh.v.data(), GL_STATIC_DRAW);
-
-	// Mesh index buffer
-	glGenBuffers(1, &obj->index_buffer_id);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->index_buffer_id);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj->mesh.t.size() * sizeof(obj->mesh.t[0]), obj->mesh.t.data(), GL_STATIC_DRAW);
-
-	// Colors VBO
-	genRandomColors(obj->mesh);
-	glGenBuffers(1, &obj->color_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, obj->mesh.c.size() * sizeof(obj->mesh.c[0]), obj->mesh.c.data(), GL_STATIC_DRAW);
-
-	// Normals VBO
-	genNormals(obj->mesh);
-	glGenBuffers(1, &obj->normal_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->normal_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, obj->mesh.n.size() * sizeof(obj->mesh.n[0]), obj->mesh.n.data(), GL_STATIC_DRAW);
-
-	// Unbind
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-	// Increment drawing stats
-	obj_count_++;
-	tri_count_ += obj->mesh.v.size() / 3;
-	vert_count_ += obj->mesh.v.size();
-}
-
-void App::InitRenderLineObject(Object3D* obj)
-{
-	// VAO
-	glGenVertexArrays(1, &obj->vertex_array_id_);
-	glBindVertexArray(obj->vertex_array_id_);
-
-	// Mesh VBO
-	glGenBuffers(1, &obj->vertex_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, obj->mesh.v.size() * sizeof(obj->mesh.v[0]), obj->mesh.v.data(), GL_STATIC_DRAW);
-
-	// Unbind
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-	// Increment drawing stats
-	obj_count_++;
-	vert_count_ += obj->mesh.v.size();
-}
-
 // Load up Freetype font glyphs, generate and bind character textures
 void App::InitFont()
 {
@@ -575,8 +508,6 @@ void App::InitFont()
 // Load text shaders, generate and bind VAO, VBO
 void App::InitRenderText()
 {
-	// Text shader program
-	program_id_text_ = LoadShaders("vertex_text.shader", "fragment_text.shader");
 
 	// VAO
 	glGenVertexArrays(1, &vertex_array_id_text_);
@@ -598,303 +529,27 @@ void App::InitRenderText()
 	projection_text_ = glm::ortho(0.0f, static_cast<GLfloat>(width_), 0.0f, static_cast<GLfloat>(height_));
 }
 
-void App::InitRenderGrid()
-{
-	// 3D line shader
-	program_id_line_ = LoadShaders("vertex_line.shader", "fragment_line.shader");
-
-	// VAO
-	glGenVertexArrays(1, &vertex_array_id_grid_);
-	glBindVertexArray(vertex_array_id_grid_);
-
-	// Setup vertice VBO
-	genGrid(mesh_grid_, 31.0f, 31, 2, glm::vec4(0.6f, 0.9f, 0.9f, 0.4f));
-	glGenBuffers(1, &vertex_buffer_grid_);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_grid_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_grid_.v.size() * sizeof(mesh_grid_.v[0]), mesh_grid_.v.data(), GL_STATIC_DRAW);
-
-	// Setup color VBO
-	glGenBuffers(1, &color_buffer_grid_);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_grid_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_grid_.c.size() * sizeof(mesh_grid_.c[0]), mesh_grid_.c.data(), GL_STATIC_DRAW);
-
-	// Unbind VAO, VBO
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::InitRenderPoints(Object3D* points)
-{
-	// Bind shader
-	const GLuint program_id = shaders_["point"]->id_;
-	glUseProgram(program_id);
-
-	// VAO
-	if (!glIsVertexArray(points->vertex_array_id_)) glGenVertexArrays(1, &points->vertex_array_id_);
-	glBindVertexArray(points->vertex_array_id_);
-
-	// Setup vertice VBO
-	if (!glIsBuffer(points->vertex_buffer_id)) glGenBuffers(1, &points->vertex_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, points->vertex_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, points->mesh.v.size() * sizeof(points->mesh.v[0]), points->mesh.v.data(), GL_STATIC_DRAW);
-
-	// Setup color VBO
-	if (!glIsBuffer(points->color_buffer_id)) glGenBuffers(1, &points->color_buffer_id);
-	glBindBuffer(GL_ARRAY_BUFFER, points->color_buffer_id);
-	glBufferData(GL_ARRAY_BUFFER, points->mesh.c.size() * sizeof(points->mesh.c[0]), points->mesh.c.data(), GL_STATIC_DRAW);
-
-	// Unbind VAO, VBO
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::InitRenderDebug()
-{
-	// VAO
-	if (!glIsVertexArray(vertex_array_id_debug_)) glGenVertexArrays(1, &vertex_array_id_debug_);
-	glBindVertexArray(vertex_array_id_debug_);
-
-	// Setup vertice VBO
-	if (!glIsBuffer(vertex_buffer_debug_)) glGenBuffers(1, &vertex_buffer_debug_);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_debug_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_debug_.v.size() * sizeof(mesh_debug_.v[0]), mesh_debug_.v.data(), GL_STATIC_DRAW);
-
-	// Setup color VBO
-	if (!glIsBuffer(color_buffer_debug_)) glGenBuffers(1, &color_buffer_debug_);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_debug_);
-	glBufferData(GL_ARRAY_BUFFER, mesh_debug_.c.size() * sizeof(mesh_debug_.c[0]), mesh_debug_.c.data(), GL_STATIC_DRAW);
-
-	// Unbind VAO, VBO
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::InitRenderFocuser()
-{
-	InitRenderPoints(focuser_->axis_points_);
-	for (Object3D*& ring : focuser_->axis_rings_)
-	{
-		InitRenderLineObject(ring);
-	}
-}
-
 void App::RenderMain()
 {
-	for (Object3D* obj : objs_)
-		RenderTris(obj);
-
 	for (Object3D* obj : objects_)
-		RenderObject(obj);
-}
-
-void App::RenderMainLines()
-{
-	for (Object3D* obj : objs_line_)
-		RenderLines(obj);
+		if (draw_debug_ || !obj->debug_) obj->Render();
 
 	for (Object3D* obj : focuser_->axis_rings_)
-		RenderLines(obj);
-}
+		obj->Render();
 
-void App::RenderObject(Object3D* obj)
-{
-	obj->Render();
-}
+	if (config_[TRIANGLER_SETTING_ID_GRID_DRAW].GetBool())
+		grid_->Render();
 
-void App::RenderTris(const Object3D* obj)
-{
-	// Update projections & transformations
-	projection_main_ = camera_.Projection((float)width_, (float)height_);
-	view_main_ = camera_.View();
-
-	const glm::mat4 model = obj->GetTransform();
-	const int flat = config_[TRIANGLER_SETTING_ID_FLAT].GetBool() ? 1 : 0;
-
-	// Model-view-projection
-	const glm::mat4 vp = projection_main_ * view_main_;
-
-	// Bind shader
-	const GLuint program_id = shaders_["main"]->id_;
-	glUseProgram(program_id);
-
-	// Uniforms
-	GLuint flatID = glGetUniformLocation(program_id, "flat_shading");
-	glUniform1i(flatID, flat);
-
-	GLuint modelID = glGetUniformLocation(program_id, "model_to_world");
-	glUniformMatrix4fv(modelID, 1, GL_FALSE, glm::value_ptr(model));
-
-	//GLuint mvpID = glGetUniformLocation(program_id, "VP");
-	//glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(vp));
-
-	GLuint camposID = glGetUniformLocation(program_id, "camera_pos");
-	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
-
-	GLuint dirlightID = glGetUniformLocation(program_id, "light_dir");
-	glUniform3fv(dirlightID, 1, (GLfloat*)&dir_light_);
-
-	// Bind VAO, index
-	glBindVertexArray(obj->vertex_array_id_);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj->index_buffer_id);
-
-	// Set up vertex attributes
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
-	glVertexAttribPointer(
-		0,                  // attribute pos in shader
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->color_buffer_id);
-	glVertexAttribPointer(
-		1,                                // attribute pos in shader
-		4,                                // size
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
-
-	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->normal_buffer_id);
-	glVertexAttribPointer(
-		2,                                // attribute pos in shader
-		3,                                // size
-		GL_FLOAT,                         // type
-		GL_FALSE,                         // normalized?
-		0,                                // stride
-		(void*)0                          // array buffer offset
-	);
-
-	// Draw
-	glDrawElements(GL_TRIANGLES, obj->mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
-
-	// Disable vertex attributes
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
-
-	// Unbind VAO, VBO
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::RenderLines(const Object3D* obj)
-{
-	// Update projections & transformations
-	projection_main_ = camera_.Projection((float)width_, (float)height_);
-	view_main_ = camera_.View();
-
-	const glm::mat4 model = obj->GetTransform();
-
-	// Model-view-projection
-	const glm::mat4 mvp = projection_main_ * view_main_ * model;
-
-	// Bind shader
-	glUseProgram(program_id_line_);
-
-	// Uniforms
-	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
-
-	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
-	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
-
-	GLuint linecolorID = glGetUniformLocation(program_id_line_, "line_color");
-	glUniform4fv(linecolorID, 1, (GLfloat*)&obj->line_color);
-
-	GLuint multicolorID = glGetUniformLocation(program_id_line_, "multi_color");
-	glUniform1i(multicolorID, 0);
-
-	// Bind VAO, VBO
-	glBindVertexArray(obj->vertex_array_id_);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
-
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, obj->vertex_buffer_id);
-	glVertexAttribPointer(
-		0,                  // attribute pos in shader
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	glDrawArrays(GL_LINES, 0, obj->mesh.v.size());
-
-	glDisableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::RenderPoints(Object3D* points)
-{
-	const glm::mat4 mvp = projection_main_ * view_main_;
-
-	// Bind shader
-	const GLuint program_id = shaders_["point"]->id_;
-	glUseProgram(program_id);
-
-	GLuint mvpID = glGetUniformLocation(program_id, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
-
-	// Bind VAO, index
-	glBindVertexArray(points->vertex_array_id_);
-
-	// Set up vertex attributes
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, points->vertex_buffer_id);
-	glVertexAttribPointer(
-		0,                  // attribute pos in shader
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	// Set up vertex attributes
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, points->color_buffer_id);
-	glVertexAttribPointer(
-		1,                  // attribute pos in shader
-		4,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	// Draw
-	glDrawArrays(GL_POINTS, 0, points->mesh.v.size());
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	focuser_->axis_points_->Render();
 }
 
 void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
 {
-	glEnable(GL_BLEND);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	// Bind shader
-	glUseProgram(program_id_text_);
+	glUseProgram(shaders_["text"]->id_);
 
 	// Uniforms
-	glUniform3f(glGetUniformLocation(program_id_text_, "textColor"), color.x, color.y, color.z);
-	glUniformMatrix4fv(glGetUniformLocation(program_id_text_, "projection"), 1, GL_FALSE, glm::value_ptr(projection_text_));
+	glUniform3f(glGetUniformLocation(shaders_["text"]->id_, "textColor"), color.x, color.y, color.z);
 
 	// Textures
 	glActiveTexture(GL_TEXTURE0);
@@ -940,110 +595,6 @@ void App::RenderText(std::string text, GLfloat x, GLfloat y, GLfloat scale, glm:
 
 }
 
-void App::RenderGrid()
-{
-	// Retrieve grid height from config
-	auto height = config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat();
-
-	// Model-view-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * glm::translate(glm::vec3(0, height,0)) * glm::mat4(1.0);
-
-	// Bind shader
-	glUseProgram(program_id_line_);
-
-	// Uniforms
-	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
-
-	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
-	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
-
-	GLuint multicolorID = glGetUniformLocation(program_id_line_, "multi_color");
-	glUniform1i(multicolorID, 1);
-
-	// Bind VAO
-	glBindVertexArray(vertex_array_id_grid_);
-
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_grid_);
-	glVertexAttribPointer(
-		0,                  // attribute pos in shader
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_grid_);
-	glVertexAttribPointer(
-		1,                  // attribute pos in shader
-		4,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	glDrawArrays(GL_LINES, 0, mesh_grid_.v.size());
-
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-void App::RenderDebug()
-{
-	// Model-view-projection
-	glm::mat4 mvp = projection_main_ * view_main_ * glm::mat4(1.0);
-
-	// Bind shader
-	glUseProgram(program_id_line_);
-
-	// Uniforms
-	GLuint mvpID = glGetUniformLocation(program_id_line_, "MVP");
-	glUniformMatrix4fv(mvpID, 1, GL_FALSE, glm::value_ptr(mvp));
-
-	GLuint camposID = glGetUniformLocation(program_id_line_, "camera_pos");
-	glUniform3fv(camposID, 1, (GLfloat*)&camera_.Position());
-
-	// Bind VAO, VBO
-	glBindVertexArray(vertex_array_id_debug_);
-
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_debug_);
-	glVertexAttribPointer(
-		0,                  // attribute pos in shader
-		3,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, color_buffer_debug_);
-	glVertexAttribPointer(
-		1,                  // attribute pos in shader
-		4,                  // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
-
-	glDrawArrays(GL_LINES, 0, mesh_debug_.v.size());
-
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
 void App::RenderStats()
 {
 	int sizeX, sizeY;
@@ -1073,20 +624,22 @@ void App::RenderStats()
 
 }
 
-void App::InitGUI()
-{
-
-}
-
-void App::RenderGUI()
-{
-	
-}
-
 void App::UpdateGlobalUniforms()
 {
-	// View-projection
+	projection_main_ = camera_.Projection((float)width_, (float)height_);
+	view_main_ = camera_.View();
+	draw_debug_ = config_[TRIANGLER_SETTING_ID_DEBUG].GetBool();
+
+	const float grid_height = config_[TRIANGLER_SETTING_ID_GRIDHEIGHT].GetFloat();
+	grid_->ResetTranslation();
+	grid_->Translate(glm::translate(glm::vec3(0, grid_height, 0)));
+
+	// Update global uniform values
 	static_cast<ShaderUniform<glm::mat4>*>(uniforms_["VP"])->SetValue(projection_main_ * view_main_);
+	static_cast<ShaderUniform<glm::mat4>*>(uniforms_["projection_text"])->SetValue(projection_text_);
+	static_cast<ShaderUniform<glm::vec3>*>(uniforms_["camera_pos"])->SetValue(camera_.Position());
+	static_cast<ShaderUniform<glm::vec3>*>(uniforms_["light_dir"])->SetValue(dir_light_);
+	static_cast<ShaderUniform<int>*>(uniforms_["flat_shading"])->SetValue(config_[TRIANGLER_SETTING_ID_FLAT].GetBool() ? 1 : 0);
 }
 
 void App::CleanUniforms()
