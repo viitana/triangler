@@ -87,6 +87,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,6 +137,7 @@
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ShaderUniform.cpp" />
+    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vertexattribute.cpp" />
   </ItemGroup>
@@ -162,6 +164,8 @@
     <ClInclude Include="ray.hpp" />
     <ClInclude Include="shader.hpp" />
     <ClInclude Include="ShaderUniform.h" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="Texture.hpp" />
     <ClInclude Include="util.hpp" />
     <ClInclude Include="vertexattribute.hpp" />
   </ItemGroup>
