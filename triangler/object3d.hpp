@@ -28,7 +28,9 @@ enum class ObjectType {
 
 class VertexAttributeInterface;
 
-class Object3D : public CleanableObserverOf<VertexAttributeInterface>, public MutuallyAttachableTo<VertexAttributeInterface>
+class Object3D :
+	public CleanableObserverOf<VertexAttributeInterface>,
+	public MutuallyAttachableTo<VertexAttributeInterface>
 {
 public:
 	Object3D(ObjectType type, Shader* shader) : type_(type), shader_(shader) {}
@@ -88,12 +90,12 @@ public:
 	void ApplyUniforms() const;
 
 	// Inherited: CleanableObserver
-	void NotifyDirty(VertexAttributeInterface* vertex_attribute);
-	void CleanObservees();
+	void NotifyDirty(VertexAttributeInterface* vertex_attribute) override;
+	void CleanObservees() override;
 
 	// Inherited: MutuallyAttachable
-	void AttachNoReciprocation(VertexAttributeInterface* vertex_attribute);
-	void Attach(VertexAttributeInterface* vertex_attribute);
+	void AttachNoReciprocation(VertexAttributeInterface* vertex_attribute) override;
+	void Attach(VertexAttributeInterface* vertex_attribute) override;
 
 	VertexAttributeInterface* GetVertexAttribute(const std::string name);
 

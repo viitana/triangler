@@ -9,20 +9,20 @@
 
 class Shader;
 
-class ShaderUniformInterface : public MutuallyAttachableTo<Shader>, public CleanableBy<Shader>
+class ShaderUniformInterface :
+	public MutuallyAttachableTo<Shader>,
+	public CleanableBy<Shader>
 {
 public:
 	ShaderUniformInterface(const std::string name)
 		: name_(name) {}
 
-	virtual void ApplyTo(const GLuint shader_id) const = 0;
-
 	// Inherited: MutuallyAttachable
-	virtual void AttachNoReciprocation(Shader* shader);
-	virtual void Attach(Shader* shader);
+	virtual void AttachNoReciprocation(Shader* shader) override;
+	virtual void Attach(Shader* shader) override;
 
 	// Inherited: Cleanable
-	virtual void Clean(Shader* shader);
+	virtual void Clean(Shader* shader) = 0;
 
 	const std::string name_;
 
@@ -48,9 +48,8 @@ public:
 		}
 	}
 
-	// Inherited: ShaderUniformInterface
-	// Apply uniform to a given shader id, overridden per-type
-	virtual void ApplyTo(const GLuint shader_id) const;
+	// Inherited: ShaderUniformInterface / Cleanable
+	virtual void Clean(Shader* shader) override;
 
 private:
 	T value_;

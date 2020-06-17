@@ -13,7 +13,9 @@ class ShaderUniformInterface;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
 
-class Shader : public CleanableObserverOf<ShaderUniformInterface>, public MutuallyAttachableTo<ShaderUniformInterface>
+class Shader :
+	public CleanableObserverOf<ShaderUniformInterface>,
+	public MutuallyAttachableTo<ShaderUniformInterface>
 {
 public:
 	GLuint id_;
@@ -21,12 +23,12 @@ public:
 	Shader(const char* vertex_file_path, const char* fragment_file_path);
 
 	// Inherited: CleanableObserver
-	void NotifyDirty(ShaderUniformInterface* cleanable);
-	void CleanObservees();
+	void NotifyDirty(ShaderUniformInterface* cleanable) override;
+	void CleanObservees() override;
 
 	// Inherited: MutuallyAttachable
-	virtual void AttachNoReciprocation(ShaderUniformInterface* uniform);
-	virtual void Attach(ShaderUniformInterface* uniform);
+	virtual void AttachNoReciprocation(ShaderUniformInterface* uniform) override;
+	virtual void Attach(ShaderUniformInterface* uniform) override;
 
 private:
 	std::set<ShaderUniformInterface*> uniforms_;

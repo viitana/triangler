@@ -9,15 +9,17 @@
 
 class Object3D;
 
-class VertexAttributeInterface : public MutuallyAttachableTo<Object3D>, public CleanableBy<Object3D>
+class VertexAttributeInterface :
+	public MutuallyAttachableTo<Object3D>,
+	public CleanableBy<Object3D>
 {
 public:
 	VertexAttributeInterface(const std::string name, const GLuint location)
 		: name_(name), location_(location) {}
 	
 	// Inherited: MutuallyAttachable
-	virtual void AttachNoReciprocation(Object3D* object);
-	virtual void Attach(Object3D* object);
+	virtual void AttachNoReciprocation(Object3D* object) override;
+	virtual void Attach(Object3D* object) override;
 
 	// Inherited: Cleanable
 	virtual void Clean(Object3D* object) = 0;
@@ -54,33 +56,12 @@ public:
 		}
 	}
 
-	// Inherited: ShaderUniformInterface / Cleanable
-	virtual void Clean(Object3D* object)
-	{
-		if (data_.empty()) return;
+	// Inherited: VertexAttributeInterface / Cleanable
+	virtual void Clean(Object3D* object) override;
 
-		glBindBuffer(GL_ARRAY_BUFFER, buffer_id_);
-		glBufferData(
-			GL_ARRAY_BUFFER,
-			data_.size() * sizeof(T),
-			data_.data(),
-			GL_STATIC_DRAW
-		);
-
-		glEnableVertexAttribArray(location_);
-		glVertexAttribPointer(
-			location_,
-			GetAttributeSize(),
-			GetType(),
-			GetNormalize(),
-			GetStride(),
-			GetOffset()
-		);
-	}
-
-	// Inherited: ShaderUniformInterface
-	virtual const GLint GetAttributeSize() const;
-	virtual const GLenum GetType() const;
+	// Inherited: VertexAttributeInterface
+	virtual const GLint GetAttributeSize() const override;
+	virtual const GLenum GetType() const override;
 
 private:
 	std::vector<T> data_;

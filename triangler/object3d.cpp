@@ -29,8 +29,8 @@ void Object3D::Draw() const
 void Object3D::Render()
 {
 	BindObject();
-	CleanObservees(); // Apply dirty attributes
-	ApplyUniforms(); // Apply dirty uniforms to shader
+	CleanObservees(); // Rebind dirty vertex attributes
+	ApplyUniforms(); // Rebind dirty uniforms to shader
 	Draw();
 }
 
@@ -80,7 +80,6 @@ void Object3D::NotifyDirty(VertexAttributeInterface* vertex_attribute)
 
 void Object3D::CleanObservees()
 {
-	BindObject();
 	for (VertexAttributeInterface* vertex_attribute : vertex_attributes_dirty_)
 	{
 		vertex_attribute->Clean(this);
