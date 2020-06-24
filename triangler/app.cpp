@@ -162,13 +162,13 @@ void App::InitShaders()
 
 void App::InitTestAssets()
 {
-	Object3D* obj1 = new Object3D(ObjectType::Mesh, shaders_["main"]);
-	obj1->Init();
-	obj1->SetMesh(LoadOBJ("assets/bunny_lores.obj"));
-	//LoadOBJf(obj1, "assets/bunny_lores.obj");
-	//InitObject(obj1);
-	obj1->Translate({ -0.3f, 0, 0 });
-	objects_.push_back(obj1);
+	//Object3D* obj1 = new Object3D(ObjectType::Mesh, shaders_["main"]);
+	//obj1->Init();
+	//obj1->SetMesh(LoadOBJ("assets/bunny_lores.obj"));
+	////LoadOBJf(obj1, "assets/bunny_lores.obj");
+	////InitObject(obj1);
+	//obj1->Translate({ -0.3f, 0, 0 });
+	//objects_.push_back(obj1);
 
 	Object3D* obj2 = new Object3D(ObjectType::Mesh, shaders_["main"]);
 	obj2->Init();
@@ -196,9 +196,16 @@ void App::InitTestAssets()
 
 	Object3D* obj5 = new Object3D(ObjectType::Mesh, shaders_["main"]);
 	obj5->Init();
-	obj5->SetMesh(LoadOBJ("assets/bunny_lores.obj"));
+	obj5->SetMesh(LoadOBJFast("assets/test_cube.obj", "assets"));
 	obj5->Translate({ 0, 0, 0.25f });
+	obj5->Scale(.1f);
 	objects_.push_back(obj5);
+
+	Object3D* obj6 = new Object3D(ObjectType::Mesh, shaders_["main"]);
+	obj6->Init();
+	obj6->SetMesh(LoadOBJFast("assets/bunny_lores.obj", "assets"));
+	obj6->Translate({ 0, 0, 0.5f });
+	objects_.push_back(obj6);
 
 }
 

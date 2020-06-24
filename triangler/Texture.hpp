@@ -6,7 +6,7 @@
 class Texture
 {
 public:
-	Texture(const GLenum target, const std::string path);
+	Texture(const std::string path, const GLenum target = GL_TEXTURE_2D);
 	//void Bind() const;
 private:
 	const GLenum target_;

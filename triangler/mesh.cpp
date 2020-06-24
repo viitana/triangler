@@ -4,6 +4,9 @@
 #include <iostream>
 #include <chrono>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+
 #include <glm/gtx/norm.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -382,6 +385,87 @@ Mesh LoadOBJ(const std::string path, const glm::vec3 offset)
 		<< m.t.size() / 3 << "/" << t
 		<< ", time: "
 		<< elapsed_seconds.count() << "s"
+		<< std::endl;
+
+	return m;
+}
+
+Mesh LoadOBJFast(const std::string filename, const std::string path)
+{
+	auto start = std::chrono::system_clock::now();
+
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+
+	std::string warn;
+	std::string err;
+
+	Mesh m;
+	glm::dvec3 avg(0.0);
+
+	bool loaded = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str(), path.c_str());
+
+	if (!warn.empty()) std::cout << warn << std::endl;
+	if (!err.empty()) std::cerr << err << std::endl;
+	if (!loaded)
+	{
+		std::cerr << "Failed to load OBJ: " << path << std::endl;
+		return m;
+	}
+	if (shapes.empty())
+	{
+		std::cerr << "No shapes in OBJ: " << path << std::endl;
+		return m;
+	}
+	if (shapes[0].mesh.num_face_vertices.empty())
+	{
+		std::cerr << "No vertices in OBJ: " << path << std::endl;
+		return m;
+	}
+	if (shapes[0].mesh.num_face_vertices[0] != 3)
+	{
+		std::cerr << "Unsupported non-triangle primitives in OBJ: " << path << std::endl;
+		return m;
+	}
+
+	//m.v.insert(m.v.end(), attrib.vertices.begin(), attrib.vertices.end());
+	for (unsigned n = 0u; n < attrib.vertices.size(); n+=3)
+	{
+		glm::vec3 vec = glm::vec3(
+			attrib.vertices[n + 0],
+			attrib.vertices[n + 1],
+			attrib.vertices[n + 2]
+		);
+		m.v.emplace_back(vec);
+		avg += vec;
+	}
+
+	for (unsigned n = 0; n < shapes[0].mesh.indices.size(); n++)
+	{
+		m.t.emplace_back(shapes[0].mesh.indices[n].vertex_index);
+		// m.n.emplace_back(shapes[0].mesh.indices[n].normal_index);
+	}
+
+	float maxlen = 0;
+	avg = 3.0 * avg / static_cast<double>(attrib.vertices.size());
+	for (auto& vert : m.v)
+	{
+		// Center to mid
+		vert = (vert - glm::vec3(avg));
+		// Find furthest vertice (mesh radius)
+		if (glm::length2(vert) > maxlen) maxlen = glm::length2(vert);
+	}
+	m.radius = sqrtf(maxlen);
+	m.mid = glm::vec3(0.f);
+
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end - start;
+
+	std::cout
+		<< "Loaded OBJ mesh, vertices: " << m.v.size()
+		<< ", triangles: " << m.t.size() / 3
+		<< ", time: " << elapsed_seconds.count() << "s"
 		<< std::endl;
 
 	return m;

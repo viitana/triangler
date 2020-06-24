@@ -11,6 +11,7 @@
 #include "mesh.hpp"
 #include "shader.hpp"
 #include "vertexattribute.hpp"
+#include "Texture.hpp"
 
 enum class ObjectType {
 	Mesh,
@@ -107,6 +108,8 @@ private:
 
 	std::unordered_map<std::string, VertexAttributeInterface*> vertex_attributes_;
 	std::set<VertexAttributeInterface*> vertex_attributes_dirty_;
+
+	Texture* texture_;
 
 	// Submit draw call
 	void Draw() const;

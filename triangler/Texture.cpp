@@ -5,7 +5,7 @@
 
 #include "Texture.hpp"
 
-Texture::Texture(const GLenum target, const std::string path) : target_(target), path_(path)
+Texture::Texture(const std::string path, const GLenum target) : target_(target), path_(path)
 {
 	// Generate new texture, bind it
 	glGenTextures(1, &texture_);
@@ -24,7 +24,7 @@ Texture::Texture(const GLenum target, const std::string path) : target_(target),
 
 	if (img)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_, height_, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+		glTexImage2D(target_, 0, GL_RGB, width_, height_, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
 		glGenerateMipmap(target_);
 	}
 	else
