@@ -63,3 +63,4 @@ Mesh genVector(const glm::vec3 start, const glm::vec3 end, const glm::vec4 color
 
 Mesh LoadOBJ(const std::string path, const glm::vec3 offsaet = glm::vec3(0));
 Mesh LoadOBJFast(const std::string path, const std::string filename);
+

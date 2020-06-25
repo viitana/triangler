@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <unordered_map>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
@@ -390,6 +391,44 @@ Mesh LoadOBJ(const std::string path, const glm::vec3 offset)
 	return m;
 }
 
+// For identical vertex matching
+struct Vertex
+{
+	size_t vx, vy, vz;
+	size_t nx, ny, nz;
+	size_t tu, tv;
+
+	bool operator==(const Vertex& other) const
+	{
+		return (
+			this->vx == other.vx &&
+			this->vy == other.vy &&
+			this->vz == other.vz &&
+			this->nx == other.nx &&
+			this->ny == other.ny &&
+			this->nz == other.nz &&
+			+this->tu == other.tu &&
+			this->tv == other.tv
+			);
+	}
+};
+
+// Hash function for Vertex struct (sum of powers of two)
+namespace std {
+	template<> struct hash<Vertex>
+	{
+		std::size_t operator()(const Vertex& v) const noexcept
+		{
+			return (
+				(v.vx * v.vx) + (v.vy * v.vy) + (v.vz * v.vz) +
+				(v.nx * v.nx) + (v.ny * v.ny) + (v.nz * v.nz) +
+				(v.tu * v.tu) + (v.tv * v.tv)
+				);
+		}
+	};
+}
+
+
 Mesh LoadOBJFast(const std::string filename, const std::string path)
 {
 	auto start = std::chrono::system_clock::now();
@@ -429,26 +468,67 @@ Mesh LoadOBJFast(const std::string filename, const std::string path)
 		return m;
 	}
 
-	//m.v.insert(m.v.end(), attrib.vertices.begin(), attrib.vertices.end());
-	for (unsigned n = 0u; n < attrib.vertices.size(); n+=3)
-	{
-		glm::vec3 vec = glm::vec3(
-			attrib.vertices[n + 0],
-			attrib.vertices[n + 1],
-			attrib.vertices[n + 2]
-		);
-		m.v.emplace_back(vec);
-		avg += vec;
-	}
+	unsigned idx = 0u;
+	unsigned offset = 0u;
+	std::unordered_map<Vertex, int> previous;
 
-	for (unsigned n = 0; n < shapes[0].mesh.indices.size(); n++)
+	for (unsigned face = 0; face < shapes[0].mesh.num_face_vertices.size(); face++)
 	{
-		m.t.emplace_back(shapes[0].mesh.indices[n].vertex_index);
-		// m.n.emplace_back(shapes[0].mesh.indices[n].normal_index);
+		for (unsigned vertex = 0; vertex < 3; vertex++)
+		{
+			auto v_idx = shapes[0].mesh.indices[offset + vertex];
+			Vertex v = {
+				3 * v_idx.vertex_index + 0,
+				3 * v_idx.vertex_index + 1,
+				3 * v_idx.vertex_index + 2,
+				3 * v_idx.normal_index + 0,
+				3 * v_idx.normal_index + 1,
+				3 * v_idx.normal_index + 2,
+				2 * v_idx.texcoord_index + 0,
+				2 * v_idx.texcoord_index + 1
+			};
+
+			auto match = previous.find(v);
+			if (match == previous.end()) // New vertex
+			{
+				glm::vec3 vec = glm::vec3(
+					attrib.vertices[v.vx],
+					attrib.vertices[v.vy],
+					attrib.vertices[v.vz]
+				);
+				m.v.emplace_back(vec);
+				avg += vec;
+
+				if (v_idx.normal_index != -1)
+				{
+					m.n.emplace_back(glm::vec3(
+						attrib.normals[v.nx],
+						attrib.normals[v.ny],
+						attrib.normals[v.nz]
+					));
+				}
+
+				//if (v_idx.texcoord_index != -1)
+				//{
+				//	m.tx.emplace_back(glm::vec2(
+				//		attrib.texcoords[v.tu],
+				//		attrib.texcoords[v.tv]
+				//	));
+				//}
+				size_t index = previous.size();
+				previous.insert({ v, index });
+				m.t.emplace_back(index);
+			}
+			else
+			{
+				m.t.emplace_back(match->second);
+			}
+		}
+		offset += 3;
 	}
 
 	float maxlen = 0;
-	avg = 3.0 * avg / static_cast<double>(attrib.vertices.size());
+	avg = avg / static_cast<double>(m.v.size());
 	for (auto& vert : m.v)
 	{
 		// Center to mid
@@ -464,7 +544,10 @@ Mesh LoadOBJFast(const std::string filename, const std::string path)
 
 	std::cout
 		<< "Loaded OBJ mesh, vertices: " << m.v.size()
-		<< ", triangles: " << m.t.size() / 3
+		<< ", triangles: " << (float)m.t.size() / 3.f
+		<< ", normals: " << m.n.size()
+		//<< ", texcoords: " << m.tx.size()
+		<< ", colors: " << m.c.size()
 		<< ", time: " << elapsed_seconds.count() << "s"
 		<< std::endl;
 
