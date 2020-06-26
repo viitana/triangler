@@ -145,10 +145,12 @@
     <None Include="fragment.shader" />
     <None Include="fragment_line.shader" />
     <None Include="fragment_point.shader" />
+    <None Include="fragment_tex.shader" />
     <None Include="fragment_text.shader" />
     <None Include="vertex.shader" />
     <None Include="vertex_line.shader" />
     <None Include="vertex_point.shader" />
+    <None Include="vertex_tex.shader" />
     <None Include="vertex_text.shader" />
   </ItemGroup>
   <ItemGroup>

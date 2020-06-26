@@ -14,6 +14,7 @@ void VertexAttributeInterface::Attach(Object3D* object)
 }
 
 // All possible VertexAttribute types https://stackoverflow.com/q/495021
+template class VertexAttribute<glm::vec2>;
 template class VertexAttribute<glm::vec3>;
 template class VertexAttribute<glm::vec4>;
 
@@ -40,6 +41,13 @@ void VertexAttribute<T>::Clean(Object3D* object)
 		GetOffset()
 	);
 }
+
+// vec2
+template <>
+const GLint VertexAttribute<glm::vec2>::GetAttributeSize() const { return 2; }
+template <>
+const GLenum VertexAttribute<glm::vec2>::GetType() const { return GL_FLOAT; }
+
 
 // vec3
 template <>

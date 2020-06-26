@@ -100,7 +100,8 @@ struct ObjectFocuser
 			{{ 0, 0, 0}, { 0, 0, 0 }, { 0, 0, 0 }},
 			{},
 			{{ 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }},
-			});
+			{}
+		});
 
 		// Rotate x, z axis rings to correct orientations
 		axis_rings_[0]->Rotate(PI / 2.f, { 0, 0, 1 });

@@ -508,13 +508,13 @@ Mesh LoadOBJFast(const std::string filename, const std::string path)
 					));
 				}
 
-				//if (v_idx.texcoord_index != -1)
-				//{
-				//	m.tx.emplace_back(glm::vec2(
-				//		attrib.texcoords[v.tu],
-				//		attrib.texcoords[v.tv]
-				//	));
-				//}
+				if (v_idx.texcoord_index != -1)
+				{
+					m.tx.emplace_back(glm::vec2(
+						attrib.texcoords[v.tu],
+						attrib.texcoords[v.tv]
+					));
+				}
 				size_t index = previous.size();
 				previous.insert({ v, index });
 				m.t.emplace_back(index);

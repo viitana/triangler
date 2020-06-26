@@ -86,6 +86,7 @@ private:
 	TrianglerConfig config_;
 
 	std::vector<Object3D*> objects_;
+	std::vector<Texture*> textures_;
 
 	Object3D* grid_ = nullptr;
 	ObjectFocuser* focuser_ = nullptr;

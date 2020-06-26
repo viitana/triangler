@@ -17,6 +17,8 @@ struct Mesh
 	std::vector<glm::vec3> n;
 	// Colors
 	std::vector<glm::vec4> c;
+	// Texture coordinates
+	std::vector <glm::vec2> tx;
 
 	// Mid point
 	glm::vec3 mid = { 0, 0 , 0 };

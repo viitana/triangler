@@ -14,16 +14,27 @@ void Object3D::Init()
 
 void Object3D::Draw() const
 {
-	GLenum primitive_mode;
+	GLenum primitive_mode = GL_TRIANGLES;
 	switch (type_)
 	{
-		case ObjectType::Mesh: primitive_mode = GL_TRIANGLES; break;
+		case ObjectType::Mesh: break;
 		case ObjectType::Line: primitive_mode = GL_LINES; break;
 		case ObjectType::Point: primitive_mode = GL_POINTS; break;
 	}
 
-	if (isIndexed()) glDrawArrays(primitive_mode, 0, mesh.v.size());
-	else glDrawElements(primitive_mode, mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
+	if (texture_)
+	{
+		texture_->Bind();
+	}
+
+	if (isIndexed())
+	{
+		glDrawElements(primitive_mode, mesh.t.size(), GL_UNSIGNED_INT, (void*)0);
+	}
+	else
+	{
+		glDrawArrays(primitive_mode, 0, mesh.v.size());
+	}
 }
 
 void Object3D::Render()
@@ -137,7 +148,7 @@ void Object3D::SetMesh(Mesh m)
 
 const bool Object3D::isIndexed() const
 {
-	return index_buffer_id == -1;
+	return index_buffer_id != -1;
 }
 
 // Get origin in world-space
@@ -246,4 +257,23 @@ void Object3D::ClearBuffers()
 	glDeleteBuffers(1, &color_buffer_id);
 	glDeleteBuffers(1, &normal_buffer_id);
 	glDeleteVertexArrays(1, &vertex_array_id_);
+}
+
+void Object3D::AttachNoReciprocation(Texture* tx)
+{
+	BindObject();
+
+	VertexAttribute<glm::vec2>* tex_coords = new VertexAttribute<glm::vec2>(
+		VERTEX_ATTRIB_NAME_TEXTURECOORD,
+		VERTEX_ATTRIB_LOCATION_TEXTURECOORD,
+		mesh.tx
+	);
+	Attach(tex_coords);
+	texture_ = tx;
+}
+
+void Object3D::Attach(Texture* tx)
+{
+	AttachNoReciprocation(tx);
+	tx->AttachNoReciprocation(this);
 }

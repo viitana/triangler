@@ -146,11 +146,17 @@ void App::InitShaders()
 	shaders_.insert({ "line", new Shader("vertex_line.shader", "fragment_line.shader") });
 	shaders_.insert({ "point", new Shader("vertex_point.shader", "fragment_point.shader") });
 	shaders_.insert({ "text", new Shader("vertex_text.shader", "fragment_text.shader") });
+	shaders_.insert({ "tex", new Shader("vertex_tex.shader", "fragment_tex.shader") });
 
 	shaders_["main"]->Attach(uniforms_["VP"]);
 	shaders_["main"]->Attach(uniforms_["camera_pos"]);
 	shaders_["main"]->Attach(uniforms_["light_dir"]);
 	shaders_["main"]->Attach(uniforms_["flat_shading"]);
+
+	shaders_["tex"]->Attach(uniforms_["VP"]);
+	shaders_["tex"]->Attach(uniforms_["camera_pos"]);
+	shaders_["tex"]->Attach(uniforms_["light_dir"]);
+	shaders_["tex"]->Attach(uniforms_["flat_shading"]);
 
 	shaders_["line"]->Attach(uniforms_["VP"]);
 	shaders_["line"]->Attach(uniforms_["camera_pos"]);
@@ -194,11 +200,14 @@ void App::InitTestAssets()
 	obj4->Scale(0.1f);
 	objects_.push_back(obj4);
 
-	Object3D* obj5 = new Object3D(ObjectType::Mesh, shaders_["main"]);
+	Object3D* obj5 = new Object3D(ObjectType::Mesh, shaders_["tex"]);
+	Texture* tex = new Texture("assets/test_tex.png");
+	textures_.push_back(tex);
 	obj5->Init();
-	obj5->SetMesh(LoadOBJFast("assets/test_cube.obj", "assets"));
+	obj5->SetMesh(LoadOBJFast("assets/test_cube2.obj", "assets"));
+	obj5->Attach(tex);
 	obj5->Translate({ 0, 0, 0.25f });
-	obj5->Scale(.1f);
+	obj5->Scale(.07f);
 	objects_.push_back(obj5);
 
 	Object3D* obj6 = new Object3D(ObjectType::Mesh, shaders_["main"]);

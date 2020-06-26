@@ -83,6 +83,12 @@
     <None Include="fragment_line.shader">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="vertex_tex.shader">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="fragment_tex.shader">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.hpp">

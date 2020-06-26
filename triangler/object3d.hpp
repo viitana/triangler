@@ -2,6 +2,7 @@
 
 #include <set>
 #include <unordered_map> 
+#include <iostream>
 
 #include <glm/glm.hpp>
 
@@ -22,16 +23,20 @@ enum class ObjectType {
 #define VERTEX_ATTRIB_NAME_POSITION "vertex_position_modelspace"
 #define VERTEX_ATTRIB_NAME_COLOR "vertex_color"
 #define VERTEX_ATTRIB_NAME_NORMAL "vertex_normal"
+#define VERTEX_ATTRIB_NAME_TEXTURECOORD "texture_coordinate"
 
 #define VERTEX_ATTRIB_LOCATION_POSITION 0
 #define VERTEX_ATTRIB_LOCATION_COLOR 1
 #define VERTEX_ATTRIB_LOCATION_NORMAL 2
+#define VERTEX_ATTRIB_LOCATION_TEXTURECOORD 3
 
 class VertexAttributeInterface;
+class Texture;
 
 class Object3D :
 	public CleanableObserverOf<VertexAttributeInterface>,
-	public MutuallyAttachableTo<VertexAttributeInterface>
+	public MutuallyAttachableTo<VertexAttributeInterface>,
+	public MutuallyAttachableTo<Texture>
 {
 public:
 	Object3D(ObjectType type, Shader* shader) : type_(type), shader_(shader) {}
@@ -62,8 +67,6 @@ public:
 	void Init();
 	// Bind shader & VAO, clean apply uniforms to shader, draw
 	void Render();
-	// Bind buffer and apply data to the given target location
-	void BindData(GLenum target, GLenum buffer, GLsizeiptr size, const void* data);
 	// Add a mesh; Binds all vertex data in the mesh and generates colors & normals if missing
 	void SetMesh(Mesh m);
 
@@ -94,9 +97,13 @@ public:
 	void NotifyDirty(VertexAttributeInterface* vertex_attribute) override;
 	void CleanObservees() override;
 
-	// Inherited: MutuallyAttachable
+	// Inherited: MutuallyAttachable<VertexAttributeInterface>
 	void AttachNoReciprocation(VertexAttributeInterface* vertex_attribute) override;
 	void Attach(VertexAttributeInterface* vertex_attribute) override;
+
+	// Inherited: MutuallyAttachable<Texture>
+	void AttachNoReciprocation(Texture* tx) override;
+	void Attach(Texture* tx) override;
 
 	VertexAttributeInterface* GetVertexAttribute(const std::string name);
 
@@ -109,10 +116,13 @@ private:
 	std::unordered_map<std::string, VertexAttributeInterface*> vertex_attributes_;
 	std::set<VertexAttributeInterface*> vertex_attributes_dirty_;
 
-	Texture* texture_;
+	Texture* texture_ = nullptr;
 
 	// Submit draw call
 	void Draw() const;
+
+	// Bind buffer and apply data to the given target location
+	void BindData(GLenum target, GLenum buffer, GLsizeiptr size, const void* data);
 
 	// Bind shader & VAO
 	void BindObject() const;
