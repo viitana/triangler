@@ -432,6 +432,11 @@ bool App::InitGLFW()
 	}
 	glfwMakeContextCurrent(window_);
 
+	// Add window icon
+	GLFWimage* icon = new GLFWimage;
+	icon->pixels = stbi_load("assets/logo_96.png", &icon->width, &icon->height, nullptr, 0);
+	glfwSetWindowIcon(window_, 1, icon);
+
 	glfwSetInputMode(window_, GLFW_STICKY_KEYS, GL_TRUE);
 	glfwSetWindowUserPointer(window_, this);
 	glfwSetCursorPosCallback(window_, cursor_position_callback);

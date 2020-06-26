@@ -19,6 +19,8 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H  
 
+#include "stb_image.h" 
+
 #include "shader.hpp"
 #include "mesh.hpp"
 #include "font.hpp"
