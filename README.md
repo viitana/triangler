@@ -33,6 +33,12 @@ Assuming you use Visual Studio:
 
 ### Changelog
 ```
+*** 0.0.4 ***
+- Object texturing support
+- OBJ file support rewrite
+  - Swapped custom OBJ file loader for tinyobjloader
+  - Added separate OBJ attribute aggregation to a single index
+- New logo/icon
 *** 0.0.3 ***
 - Observer-based combined render & shader pipeline for 3D objects
   - Unified rendering pipeline for tri meshes, lines, points
