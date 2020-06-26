@@ -171,15 +171,12 @@ void App::InitTestAssets()
 	Object3D* obj1 = new Object3D(ObjectType::Mesh, shaders_["main"]);
 	obj1->Init();
 	obj1->SetMesh(LoadOBJFast("assets/bunny_lores.obj", "assets"));
-	//LoadOBJf(obj1, "assets/bunny_lores.obj");
-	//InitObject(obj1);
-	obj1->Translate({ -0.3f, 0, 0 });
+	obj1->Translate({ 0, 0, 0.25f });
 	objects_.push_back(obj1);
 
 	Object3D* obj2 = new Object3D(ObjectType::Mesh, shaders_["main"]);
 	obj2->Init();
 	obj2->SetMesh(genIcosphere(0));
-	//loadIcosphere(obj2, 0);
 	obj2->Scale(0.08f);
 	obj2->Translate({ 0, 0, -0.25f });
 	objects_.push_back(obj2);
@@ -187,8 +184,6 @@ void App::InitTestAssets()
 	Object3D* obj3 = new Object3D(ObjectType::Mesh, shaders_["main"]);
 	obj3->Init();
 	obj3->SetMesh(genIcosphere(3));
-	//loadIcosphere(obj3, 3);
-	//InitObject(obj3);
 	obj3->Scale(0.081f);
 	obj3->Translate({ 0.3f, 0, 0 });
 	objects_.push_back(obj3);
@@ -206,15 +201,9 @@ void App::InitTestAssets()
 	obj5->Init();
 	obj5->SetMesh(LoadOBJFast("assets/test_cube2.obj", "assets"));
 	obj5->Attach(tex);
-	obj5->Translate({ 0, 0, 0.25f });
+	obj5->Translate({ -0.3f, 0, 0 });
 	obj5->Scale(.07f);
 	objects_.push_back(obj5);
-
-	Object3D* obj6 = new Object3D(ObjectType::Mesh, shaders_["main"]);
-	obj6->Init();
-	obj6->SetMesh(LoadOBJFast("assets/bunny_lores.obj", "assets"));
-	obj6->Translate({ 0, 0, 0.5f });
-	objects_.push_back(obj6);
 
 }
 
@@ -376,10 +365,13 @@ void App::HandleKey(int key, int scancode, int action, int mods)
 	if (action == GLFW_PRESS)
 	{
 		if (key == GLFW_KEY_ESCAPE)
+		{
 			glfwSetWindowShouldClose(window_, GLFW_TRUE);
-		//if (key == GLFW_KEY_R) {
-		//	
-		//}
+		}
+		else if (key == GLFW_KEY_R)
+		{
+			RecompileShaders();
+		}
 		config_.Input(key);
 	}
 }
@@ -669,5 +661,13 @@ void App::CleanUniforms()
 	{
 		Shader* shader = pair.second;
 		shader->CleanObservees();
+	}
+}
+
+void App::RecompileShaders()
+{
+	for (const auto pair : shaders_)
+	{
+		pair.second->Compile();
 	}
 }

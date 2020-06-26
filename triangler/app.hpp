@@ -30,7 +30,7 @@
 #include "objectfocuser.hpp"
 #include "ShaderUniform.h"
 
-#define TRIANGLER_VERSION "0.0.3"
+#define TRIANGLER_VERSION "0.0.4"
 #define WINDOW_START_WIDTH 1280
 #define WINDOW_START_HEIGHT 720
 
@@ -56,6 +56,7 @@ public:
 
 	void UpdateGlobalUniforms();
 	void CleanUniforms();
+	void RecompileShaders();
 
 	void HandleCursorMove(double xpos, double ypos);
 	void HandleResize(int height, int width);

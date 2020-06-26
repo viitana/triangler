@@ -20,9 +20,9 @@ void main()
 {
 	vec4 basecolor = texture(texSampler, texture_coord);
 	vec3 light = normalize(light_dir);
+	vec3 normal = flat_shading ? normal_ws_f : normal_ws;
 
-	vec3 normal_lighting = flat_shading ? normal_ws_f : normal_ws;
-	vec4 c = basecolor * max(0.0, dot(normal_lighting, -light));
+	vec4 c = vec4(basecolor.xyz * max(0.0, dot(normal, -light)), 1);
 
-	color = basecolor;
+	color = c;
 }
