@@ -41,6 +41,7 @@ const std::string FloatSetting::GetValue() const
 
 TrianglerConfig::TrianglerConfig()
 {
+	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_VSYNC, new BoolSetting("Vsync", false)));
 	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_CAMSPEED, new FloatSetting("Camera speed", 0.01f, 0.001f, 0.001f, 1.f)));
 	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_GRIDHEIGHT, new FloatSetting("Grid height", 0.01f, 0.001f, 0.001f, 1.f)));
 	config_.insert(std::make_pair(TRIANGLER_SETTING_ID_GRID_DRAW, new BoolSetting("Grid drawing", true)));

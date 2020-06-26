@@ -108,6 +108,8 @@ void App::Run()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 
+		glfwSwapInterval(config_[TRIANGLER_SETTING_ID_VSYNC].GetBool() ? 0 : 1);
+
 		UpdateGlobalUniforms();
 		CleanUniforms();
 
