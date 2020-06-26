@@ -1,4 +1,4 @@
-<img align="left" width="48" height="48" src="https://github.com/viitana/triangler/blob/master/triangler/assets/logo_48.png?raw=true" alt="Resume application project app icon">
+![Screenshot](/triangler/assets/logo_96.png?raw=true "A couple of Stanford bunnies and other objects visualized in triangler")
 
 # triangler
 
