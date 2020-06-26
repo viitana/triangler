@@ -1,3 +1,5 @@
+<img align="left" width="48" height="48" src="https://github.com/viitana/triangler/blob/master/triangler/assets/logo_48.png?raw=true" alt="Resume application project app icon">
+
 # triangler
 
 A rudimentary OpenGL 3.3 graphics engine and model viewer. Built from scratch as a personal excercise in modern 3D graphics pipelines and APIs.
