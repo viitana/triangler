@@ -201,7 +201,7 @@ void App::InitTestAssets()
 	Texture* tex = new Texture("assets/test_tex.png");
 	textures_.push_back(tex);
 	obj5->Init();
-	obj5->SetMesh(LoadOBJFast("assets/test_cube2.obj", "assets"));
+	obj5->SetMesh(LoadOBJFast("assets/test_cube.obj", "assets"));
 	obj5->Attach(tex);
 	obj5->Translate({ -0.3f, 0, 0 });
 	obj5->Scale(.07f);
