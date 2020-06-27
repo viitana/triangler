@@ -170,9 +170,7 @@ void App::InitShaders()
 
 void App::InitTestAssets()
 {
-	Object3D* obj1 = new Object3D(ObjectType::Mesh, shaders_["main"]);
-	obj1->Init();
-	obj1->SetMesh(LoadOBJFast("assets/bunny_lores.obj", "assets"));
+	Object3D* obj1 = LoadOBJ("assets/bunny_lores.obj", "assets", shaders_["main"]);
 	obj1->Translate({ 0, 0, 0.25f });
 	objects_.push_back(obj1);
 
@@ -197,15 +195,13 @@ void App::InitTestAssets()
 	obj4->Scale(0.1f);
 	objects_.push_back(obj4);
 
-	Object3D* obj5 = new Object3D(ObjectType::Mesh, shaders_["tex"]);
-	Texture* tex = new Texture("assets/test_tex.png");
-	textures_.push_back(tex);
-	obj5->Init();
-	obj5->SetMesh(LoadOBJFast("assets/test_cube.obj", "assets"));
+	Object3D* obj5 = LoadOBJ("assets/test_cube.obj", "assets", shaders_["tex"]);
+	Texture* tex = new Texture("assets/test_cube.png");
 	obj5->Attach(tex);
 	obj5->Translate({ -0.3f, 0, 0 });
 	obj5->Scale(.07f);
 	objects_.push_back(obj5);
+	textures_.push_back(tex);
 
 }
 

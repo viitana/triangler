@@ -134,3 +134,5 @@ private:
 	void TransformChanged();
 	void ClearBuffers();
 };
+
+Object3D* LoadOBJ(const std::string path, const std::string filename, Shader* shader);
