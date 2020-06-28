@@ -128,8 +128,6 @@
   <ItemGroup>
     <ClCompile Include="app.cpp" />
     <ClCompile Include="camera.cpp" />
-    <ClCompile Include="cleanable.cpp" />
-    <ClCompile Include="font.cpp" />
     <ClCompile Include="menu.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="object3d.cpp" />
@@ -140,6 +138,7 @@
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vertexattribute.cpp" />
+    <ClCompile Include="vertexattributeinterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment.shader" />
@@ -170,6 +169,7 @@
     <ClInclude Include="Texture.hpp" />
     <ClInclude Include="util.hpp" />
     <ClInclude Include="vertexattribute.hpp" />
+    <ClInclude Include="vertexattributeinterface.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

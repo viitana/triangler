@@ -10,6 +10,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include "object3d.hpp"
+#include "vertexattribute.hpp"
 
 void Object3D::Init()
 {

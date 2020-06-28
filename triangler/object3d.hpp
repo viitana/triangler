@@ -11,7 +11,7 @@
 
 #include "mesh.hpp"
 #include "shader.hpp"
-#include "vertexattribute.hpp"
+#include "vertexattributeinterface.hpp"
 #include "Texture.hpp"
 
 enum class ObjectType {

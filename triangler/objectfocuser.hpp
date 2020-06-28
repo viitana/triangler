@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 #include "object3d.hpp"
+#include "vertexattribute.hpp"
 #include "ray.hpp"
 #include "util.hpp"
 #include "mesh.hpp"
