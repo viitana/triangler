@@ -17,12 +17,12 @@ public:
 		data_ = data;
 		for (CleanableObserver* object : observers_)
 		{
-			object->NotifyDirty2(this);
+			object->NotifyDirty(this);
 		}
 	}
 
 	// Inherited: VertexAttributeInterface / Cleanable
-	virtual void Clean2(void* info) override
+	virtual void Clean() override
 	{
 		if (data_.empty()) return;
 

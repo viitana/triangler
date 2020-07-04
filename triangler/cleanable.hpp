@@ -1,18 +1,19 @@
 #pragma once
 
-template <typename T>
-class CleanableBy
+class CleanableObserver;
+
+class Cleanable
 {
 public:
-	virtual ~CleanableBy() {}
-	virtual void Clean(T* cleaner) = 0; 
+	virtual ~Cleanable() {}
+	virtual void Clean() = 0;
+	virtual void AddObserver(CleanableObserver* observer) = 0;
 };
 
-template <typename T> 
-class CleanableObserverOf
+class CleanableObserver
 {
 public:
-	virtual ~CleanableObserverOf() {}
-	virtual void NotifyDirty(T* cleanable) = 0;
-	virtual void CleanObservees() = 0;
+	virtual ~CleanableObserver() {}
+	virtual void NotifyDirty(Cleanable* cleanable) = 0;
+	virtual void CleanObservees2() = 0;
 };

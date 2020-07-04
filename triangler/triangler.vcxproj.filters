@@ -118,9 +118,6 @@
     <ClInclude Include="ShaderUniform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cleanable.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="mutuallyattachable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -136,10 +133,10 @@
     <ClInclude Include="vertexattributeinterface.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cleanable2.hpp">
+    <ClInclude Include="attachingto.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="attachingto.hpp">
+    <ClInclude Include="cleanable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

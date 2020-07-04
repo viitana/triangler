@@ -5,7 +5,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
-#include "Object3D.hpp"
+#include "mesh.hpp"
 
 #define PI 3.1415927f
 

@@ -5,7 +5,7 @@
 
 #include <GL/glew.h>
 
-#include "cleanable2.hpp"
+#include "cleanable.hpp"
 
 class VertexAttributeInterface :
 	public Cleanable
@@ -15,8 +15,8 @@ public:
 		: name_(name), location_(location) {}
 
 	// Inherited: Cleanable
-	virtual void Clean2(void* info) = 0;
-	virtual void AddObserver(CleanableObserver* observer) { observers_.emplace_back(observer); }
+	virtual void Clean() override = 0;
+	virtual void AddObserver(CleanableObserver* observer) override { observers_.emplace_back(observer); }
 
 	const std::string name_;
 	GLuint buffer_id_ = -1;

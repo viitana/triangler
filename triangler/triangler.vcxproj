@@ -156,7 +156,6 @@
     <ClInclude Include="attachingto.hpp" />
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="cleanable.hpp" />
-    <ClInclude Include="cleanable2.hpp" />
     <ClInclude Include="font.hpp" />
     <ClInclude Include="menu.hpp" />
     <ClInclude Include="mesh.hpp" />

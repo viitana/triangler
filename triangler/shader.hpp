@@ -6,16 +6,12 @@
 #include <set>
 
 #include "cleanable.hpp"
-#include "mutuallyattachable.hpp"
+#include "attachingto.hpp"
 #include "ShaderUniform.h"
 
-class ShaderUniformInterface;
-
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
-
 class Shader :
-	public CleanableObserverOf<ShaderUniformInterface>,
-	public MutuallyAttachableTo<ShaderUniformInterface>
+	public CleanableObserver, // of ShaderUniformInterface
+	public AttachingTo<ShaderUniformInterface>
 {
 public:
 	GLuint id_ = -1;
@@ -26,11 +22,10 @@ public:
 	void Compile();
 
 	// Inherited: CleanableObserver
-	void NotifyDirty(ShaderUniformInterface* cleanable) override;
-	void CleanObservees() override;
+	void NotifyDirty(Cleanable* cleanable) override;
+	void CleanObservees2() override;
 
 	// Inherited: MutuallyAttachable
-	virtual void AttachNoReciprocation(ShaderUniformInterface* uniform) override;
 	virtual void Attach(ShaderUniformInterface* uniform) override;
 
 private:
@@ -38,7 +33,7 @@ private:
 	const char* fragment_file_path_;
 
 	std::set<ShaderUniformInterface*> uniforms_;
-	std::set<ShaderUniformInterface*> uniforms_dirty_;
+	std::set<Cleanable*> uniforms_dirty_;
 
 	// Read shader source from file
 	const bool LoadShaderFile(const char* shader_path, std::string& shader_cod) const;

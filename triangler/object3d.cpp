@@ -79,7 +79,7 @@ void Object3D::Attach(VertexAttributeInterface* vertex_attribute)
 	vertex_attribute->AddObserver(this);
 
 	vertex_attributes_.insert({ vertex_attribute->name_, vertex_attribute });
-	NotifyDirty2(vertex_attribute);
+	NotifyDirty(vertex_attribute);
 }
 
 VertexAttributeInterface* Object3D::GetVertexAttribute(const std::string name)
@@ -87,7 +87,7 @@ VertexAttributeInterface* Object3D::GetVertexAttribute(const std::string name)
 	return vertex_attributes_[name];
 }
 
-void Object3D::NotifyDirty2(Cleanable* vertex_attribute)
+void Object3D::NotifyDirty(Cleanable* vertex_attribute)
 {
 	vertex_attributes_dirty_.insert(vertex_attribute);
 }
@@ -96,7 +96,7 @@ void Object3D::CleanObservees2()
 {
 	for (Cleanable* vertex_attribute : vertex_attributes_dirty_)
 	{
-		vertex_attribute->Clean2(nullptr);
+		vertex_attribute->Clean();
 	}
 	vertex_attributes_dirty_.clear();
 }
@@ -245,16 +245,17 @@ void Object3D::ResetTranslation()
 void Object3D::AddUniform(ShaderUniformInterface* uniform)
 {
 	uniforms_.insert({ uniform->name_, uniform });
-	uniform->Attach(shader_);
+	shader_->Attach(uniform);
 }
 
 // Clean shader uniforms
 void Object3D::ApplyUniforms() const
 {
+	glUseProgram(shader_->id_);
 	for (auto const& pair : uniforms_)
 	{
 		ShaderUniformInterface* uniform = pair.second;
-		uniform->Clean(shader_);
+		uniform->Clean();
 	}
 }
 
@@ -273,15 +274,9 @@ void Object3D::ClearBuffers()
 	glDeleteVertexArrays(1, &vertex_array_id_);
 }
 
-void Object3D::AttachNoReciprocation(Texture* tx)
-{
-	texture_ = tx;
-}
-
 void Object3D::Attach(Texture* tx)
 {
-	AttachNoReciprocation(tx);
-	tx->AttachNoReciprocation(this);
+	texture_ = tx;
 }
 
 // For identical vertex matching
@@ -300,7 +295,7 @@ struct Vertex
 			this->nx == other.nx &&
 			this->ny == other.ny &&
 			this->nz == other.nz &&
-			+this->tu == other.tu &&
+			this->tu == other.tu &&
 			this->tv == other.tv
 			);
 	}

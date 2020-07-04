@@ -41,14 +41,3 @@ void Texture::Bind() const
 {
 	glBindTexture(target_, texture_);
 }
-
-void Texture::AttachNoReciprocation(Object3D* obj)
-{
-	objects_.emplace_back(obj);
-}
-
-void Texture::Attach(Object3D* obj)
-{
-	AttachNoReciprocation(obj);
-	obj->AttachNoReciprocation(this);
-}

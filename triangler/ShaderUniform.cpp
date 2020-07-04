@@ -4,36 +4,27 @@
 
 #include "ShaderUniform.h"
 
-const GLuint ShaderUniformInterface::GetLocation(const GLuint shader_id) const
+const GLint ShaderUniformInterface::GetLocation() const
 {
-	return glGetUniformLocation(shader_id, name_.c_str());
-}
-
-void ShaderUniformInterface::AttachNoReciprocation(Shader* shader)
-{
-	shaders_.insert(shader);
-}
-
-void ShaderUniformInterface::Attach(Shader* shader)
-{
-	AttachNoReciprocation(shader);
-	shader->AttachNoReciprocation(this);
+	GLint program;
+	glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+	return glGetUniformLocation(program, name_.c_str());
 }
 
 template <>
-void ShaderUniform<int>::Clean(Shader* shader)
+void ShaderUniform<int>::Clean()
 {
-	glUniform1i(GetLocation(shader->id_), value_);
+	glUniform1i(GetLocation(), value_);
 }
 
 template <>
-void ShaderUniform<glm::mat4>::Clean(Shader* shader)
+void ShaderUniform<glm::mat4>::Clean()
 {
-	glUniformMatrix4fv(GetLocation(shader->id_), 1, GL_FALSE, glm::value_ptr(value_));
+	glUniformMatrix4fv(GetLocation(), 1, GL_FALSE, glm::value_ptr(value_));
 }
 
 template <>
-void ShaderUniform<glm::vec3>::Clean(Shader* shader)
+void ShaderUniform<glm::vec3>::Clean()
 {
-	glUniform3fv(GetLocation(shader->id_), 1, glm::value_ptr(value_));
+	glUniform3fv(GetLocation(), 1, glm::value_ptr(value_));
 }

@@ -1,34 +1,27 @@
 #pragma once
 
 #include <string>
-#include <set>
+#include <vector>
 
-#include "shader.hpp"
 #include "cleanable.hpp"
-#include "mutuallyattachable.hpp"
-
-class Shader;
 
 class ShaderUniformInterface :
-	public MutuallyAttachableTo<Shader>,
-	public CleanableBy<Shader>
+	public Cleanable // by Shader
 {
 public:
 	ShaderUniformInterface(const std::string name)
 		: name_(name) {}
 
-	// Inherited: MutuallyAttachable
-	virtual void AttachNoReciprocation(Shader* shader) override;
-	virtual void Attach(Shader* shader) override;
-
 	// Inherited: Cleanable
-	virtual void Clean(Shader* shader) = 0;
+	virtual void Clean() override = 0;
+	virtual void AddObserver(CleanableObserver* observer) override { observers_.emplace_back(observer); }
 
 	const std::string name_;
 
 protected:
-	const GLuint GetLocation(const GLuint shader_id) const;
-	std::set<Shader*> shaders_;
+	const GLint GetLocation() const;
+	std::vector<CleanableObserver*> observers_;
+
 private:
 	bool changed_ = true;
 };
@@ -42,14 +35,14 @@ public:
 	void SetValue(const T value)
 	{
 		value_ = value;
-		for (Shader* shader : shaders_)
+		for (CleanableObserver* shader : observers_)
 		{
 			shader->NotifyDirty(this);
 		}
 	}
 
 	// Inherited: ShaderUniformInterface / Cleanable
-	virtual void Clean(Shader* shader) override;
+	virtual void Clean() override;
 
 private:
 	T value_;

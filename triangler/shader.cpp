@@ -5,8 +5,6 @@
 #include <algorithm>
 #include <sstream>
 
-using namespace std;
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -126,30 +124,24 @@ const GLuint Shader::LinkShaders(const GLuint vertex_shader_id, GLuint fragment_
 	return program_id;
 }
 
-void Shader::NotifyDirty(ShaderUniformInterface* cleanable)
+void Shader::NotifyDirty(Cleanable* cleanable)
 {
 	uniforms_dirty_.insert(cleanable);
 }
 
-
-void Shader::CleanObservees()
+void Shader::CleanObservees2()
 {
 	glUseProgram(id_);
-	for (CleanableBy<Shader>* uniform : uniforms_dirty_)
+	for (Cleanable* uniform : uniforms_dirty_)
 	{
-		uniform->Clean(this);
+		uniform->Clean();
 	}
 	uniforms_dirty_.clear();
 }
 
-void Shader::AttachNoReciprocation(ShaderUniformInterface* uniform)
-{
-	uniforms_.insert(uniform);
-	NotifyDirty(uniform);
-}
-
 void Shader::Attach(ShaderUniformInterface* uniform)
 {
-	AttachNoReciprocation(uniform);
-	uniform->AttachNoReciprocation(this);
+	uniform->AddObserver(this);
+	NotifyDirty(uniform);
+	uniforms_.insert(uniform);
 }

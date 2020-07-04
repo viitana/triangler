@@ -658,7 +658,7 @@ void App::CleanUniforms()
 	for (const auto& pair : shaders_)
 	{
 		Shader* shader = pair.second;
-		shader->CleanObservees();
+		shader->CleanObservees2();
 	}
 }
 

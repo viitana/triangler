@@ -6,9 +6,8 @@
 
 #include <glm/glm.hpp>
 
-#include "mutuallyattachable.hpp"
 #include "attachingto.hpp"
-#include "cleanable2.hpp"
+#include "cleanable.hpp"
 
 #include "mesh.hpp"
 #include "shader.hpp"
@@ -37,7 +36,7 @@ class Texture;
 class Object3D :
 	public CleanableObserver, // of VertexAttributeInterface
 	public AttachingTo<VertexAttributeInterface>,
-	public MutuallyAttachableTo<Texture>
+	public AttachingTo<Texture>
 {
 public:
 	Object3D(ObjectType type, Shader* shader) : type_(type), shader_(shader) {}
@@ -95,14 +94,13 @@ public:
 	void ApplyUniforms() const;
 
 	// Inherited: CleanableObserver
-	virtual void NotifyDirty2(Cleanable* vertex_attribute) override;
+	virtual void NotifyDirty(Cleanable* vertex_attribute) override;
 	virtual void CleanObservees2() override;
 
 	// Inherited: AttachingTo<VertexAttributeInterface>
 	void Attach(VertexAttributeInterface* vertex_attribute) override;
 
-	// Inherited: MutuallyAttachable<Texture>
-	void AttachNoReciprocation(Texture* tx) override;
+	// Inherited: AttachingTo<Texture>
 	void Attach(Texture* tx) override;
 
 	VertexAttributeInterface* GetVertexAttribute(const std::string name);
