@@ -5,33 +5,25 @@
 
 #include <GL/glew.h>
 
-#include "cleanable.hpp"
-#include "mutuallyattachable.hpp"
-#include "object3d.hpp"
-
-class Object3D;
+#include "cleanable2.hpp"
 
 class VertexAttributeInterface :
-	public MutuallyAttachableTo<Object3D>,
-	public CleanableBy<Object3D>
+	public Cleanable
 {
 public:
 	VertexAttributeInterface(const std::string name, const GLuint location)
 		: name_(name), location_(location) {}
 
-	// Inherited: MutuallyAttachable
-	virtual void AttachNoReciprocation(Object3D* object) override;
-	virtual void Attach(Object3D* object) override;
-
 	// Inherited: Cleanable
-	virtual void Clean(Object3D* object) = 0;
+	virtual void Clean2(void* info) = 0;
+	virtual void AddObserver(CleanableObserver* observer) { observers_.emplace_back(observer); }
 
 	const std::string name_;
 	GLuint buffer_id_ = -1;
 
 protected:
-	std::set<Object3D*> objects_;
 	const GLuint location_;
+	std::vector<CleanableObserver*> observers_;
 
 	virtual const GLint GetAttributeSize() const = 0;
 	virtual const GLenum GetType() const = 0;

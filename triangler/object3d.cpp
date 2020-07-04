@@ -48,7 +48,7 @@ void Object3D::Draw() const
 void Object3D::Render()
 {
 	BindObject();
-	CleanObservees(); // Rebind dirty vertex attributes
+	CleanObservees2(); // Rebind dirty vertex attributes
 	ApplyUniforms(); // Rebind dirty uniforms to shader
 	Draw();
 }
@@ -71,20 +71,15 @@ void Object3D::BindData(GLenum target, GLenum buffer, GLsizeiptr size, const voi
 	glBufferData(target, size, data, draw_mode_);
 }
 
-void Object3D::AttachNoReciprocation(VertexAttributeInterface* vertex_attribute)
+void Object3D::Attach(VertexAttributeInterface* vertex_attribute)
 {
 	// Generate buffers for attributes on attach
 	BindObject();
 	GenBuffer(&vertex_attribute->buffer_id_);
+	vertex_attribute->AddObserver(this);
 
 	vertex_attributes_.insert({ vertex_attribute->name_, vertex_attribute });
-	NotifyDirty(vertex_attribute);
-}
-
-void Object3D::Attach(VertexAttributeInterface* vertex_attribute)
-{
-	AttachNoReciprocation(vertex_attribute);
-	vertex_attribute->AttachNoReciprocation(this);
+	NotifyDirty2(vertex_attribute);
 }
 
 VertexAttributeInterface* Object3D::GetVertexAttribute(const std::string name)
@@ -92,16 +87,16 @@ VertexAttributeInterface* Object3D::GetVertexAttribute(const std::string name)
 	return vertex_attributes_[name];
 }
 
-void Object3D::NotifyDirty(VertexAttributeInterface* vertex_attribute)
+void Object3D::NotifyDirty2(Cleanable* vertex_attribute)
 {
 	vertex_attributes_dirty_.insert(vertex_attribute);
 }
 
-void Object3D::CleanObservees()
+void Object3D::CleanObservees2()
 {
-	for (VertexAttributeInterface* vertex_attribute : vertex_attributes_dirty_)
+	for (Cleanable* vertex_attribute : vertex_attributes_dirty_)
 	{
-		vertex_attribute->Clean(this);
+		vertex_attribute->Clean2(nullptr);
 	}
 	vertex_attributes_dirty_.clear();
 }

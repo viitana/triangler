@@ -7,7 +7,8 @@
 #include <glm/glm.hpp>
 
 #include "mutuallyattachable.hpp"
-#include "cleanable.hpp"
+#include "attachingto.hpp"
+#include "cleanable2.hpp"
 
 #include "mesh.hpp"
 #include "shader.hpp"
@@ -34,8 +35,8 @@ class VertexAttributeInterface;
 class Texture;
 
 class Object3D :
-	public CleanableObserverOf<VertexAttributeInterface>,
-	public MutuallyAttachableTo<VertexAttributeInterface>,
+	public CleanableObserver, // of VertexAttributeInterface
+	public AttachingTo<VertexAttributeInterface>,
 	public MutuallyAttachableTo<Texture>
 {
 public:
@@ -94,11 +95,10 @@ public:
 	void ApplyUniforms() const;
 
 	// Inherited: CleanableObserver
-	void NotifyDirty(VertexAttributeInterface* vertex_attribute) override;
-	void CleanObservees() override;
+	virtual void NotifyDirty2(Cleanable* vertex_attribute) override;
+	virtual void CleanObservees2() override;
 
-	// Inherited: MutuallyAttachable<VertexAttributeInterface>
-	void AttachNoReciprocation(VertexAttributeInterface* vertex_attribute) override;
+	// Inherited: AttachingTo<VertexAttributeInterface>
 	void Attach(VertexAttributeInterface* vertex_attribute) override;
 
 	// Inherited: MutuallyAttachable<Texture>
@@ -114,7 +114,7 @@ private:
 	const GLenum draw_mode_ = GL_STATIC_DRAW;
 
 	std::unordered_map<std::string, VertexAttributeInterface*> vertex_attributes_;
-	std::set<VertexAttributeInterface*> vertex_attributes_dirty_;
+	std::set<Cleanable*> vertex_attributes_dirty_;
 
 	Texture* texture_ = nullptr;
 

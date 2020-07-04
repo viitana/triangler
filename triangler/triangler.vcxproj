@@ -138,7 +138,6 @@
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vertexattribute.cpp" />
-    <ClCompile Include="vertexattributeinterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment.shader" />
@@ -154,8 +153,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.hpp" />
+    <ClInclude Include="attachingto.hpp" />
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="cleanable.hpp" />
+    <ClInclude Include="cleanable2.hpp" />
     <ClInclude Include="font.hpp" />
     <ClInclude Include="menu.hpp" />
     <ClInclude Include="mesh.hpp" />
